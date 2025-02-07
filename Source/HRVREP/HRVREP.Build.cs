@@ -8,7 +8,7 @@ public class HRVREP : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" ,"ChaosVehicles", "ViveOpenXREyeTracker" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" ,"ChaosVehicles", "ViveOpenXREyeTracker", "EyeTracker" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 
