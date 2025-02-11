@@ -18,7 +18,7 @@ void UDataLoggerManager::Init(const FString& DirectoryPath, const FString& FileN
 {
 	SetDirectory(DirectoryPath);
 	SetFileName(FileName);
-	TextFileManager = new FTextFileManager(FPaths::Combine(DirectoryPath, FileName));
+	TextFileManager = new FTextFileManager(FPaths::Combine(DirectoryPath, FileName)); // Use Frunnable to delete the pointer
 }
 
 //

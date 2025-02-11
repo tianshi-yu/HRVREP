@@ -7,7 +7,9 @@
 #include "HAL/Runnable.h"
 #include "Containers/Queue.h"
 
-
+/**
+ * Streaming file saving class for large file saving, using multi-threading
+ */
 class FTextFileManager : public FRunnable
 {
 private:

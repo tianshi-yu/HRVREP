@@ -7,8 +7,8 @@ public class HRVREP : ModuleRules
 	public HRVREP(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" ,"ChaosVehicles", "ViveOpenXREyeTracker", "EyeTracker" });
+
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Json" , "JsonUtilities", "ChaosVehicles", "ViveOpenXREyeTracker", "EyeTracker" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

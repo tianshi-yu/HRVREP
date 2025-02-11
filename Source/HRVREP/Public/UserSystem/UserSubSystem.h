@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "UserSystem/UserDataTypes.h"
+#include "DataLoggerSystem/TextFileManager.h"
 #include "UserSubSystem.generated.h"
 
 /**
@@ -14,52 +16,37 @@ class HRVREP_API UUserSubSystem : public UGameInstanceSubsystem
 {
 	GENERATED_BODY()
 
+public:
+	// 
+	//******************************* User Data **************************************//
+	//
+
+	
+	UFUNCTION(BlueprintCallable, Category = "UserSubSystem", meta = (Keywords = "Get User Data"))
+	FGenericUserData GetUserData() const { return UserData; };
+
+	UFUNCTION(BlueprintCallable, Category = "UserSubSystem", meta = (Keywords = "Get User Data"))
+	void SetUserData(FGenericUserData InUserData) { UserData = InUserData; };
+	
+
+	// 
+	//******************************* System Operations **************************************//
+	//
+	UFUNCTION(BlueprintCallable, Category = "UserSubSystem", meta = (Keywords = "Get Directory"))
+	const FString& GetUserDirectory() const { return UserDirectory; }
+
+	UFUNCTION(BlueprintCallable, Category = "UserSubSystem", meta = (Keywords = "Set Directory"))
+	void SetUserDirectory(const FString& NewDirectory);
+
+	UFUNCTION(BlueprintCallable, Category = "UserSubSystem", meta = (Keywords = "Save User Data"))
+	void SaveUserData(const FString& NewDirectory);
+
 private:
-	UPROPERTY(EditAnywhere, BlueprintGetter = GetFirstName, BlueprintSetter = SetFirstName)
-	FString FirstName;
-	UPROPERTY(EditAnywhere, BlueprintGetter = GetSurName, BlueprintSetter = SetSurName)
-	FString SurName;
-	UPROPERTY(EditAnywhere, BlueprintGetter = GetYearOfBirth, BlueprintSetter = SetYearOfBirth)
-	int YearOfBirth;
-	UPROPERTY(EditAnywhere, BlueprintGetter = GetHeight, BlueprintSetter = SetHeight)
-	int Height;
+
+	UPROPERTY(EditAnywhere, BlueprintGetter = GetUserData, BlueprintSetter = SetUserData)
+	FGenericUserData UserData;
+
 	UPROPERTY(EditAnywhere, BlueprintGetter = GetUserDirectory, BlueprintSetter = SetUserDirectory)
 	FString UserDirectory;
 
-
-public:
-	UFUNCTION(BlueprintGetter, Category = "UserSubSystem", meta = (Keywords = "Get First Name"))
-	const FString& GetFirstName() const { return FirstName; }
-
-	UFUNCTION(BlueprintSetter, Category = "UserSubSystem", meta = (Keywords = "Set First Name"))
-	void SetFirstName(const FString& NewName) { FirstName = NewName; }
-
-	UFUNCTION(BlueprintGetter, Category = "UserSubSystem", meta = (Keywords = "Get Sur Name"))
-	const FString& GetSurName() const { return SurName; }
-
-	UFUNCTION(BlueprintSetter, Category = "UserSubSystem", meta = (Keywords = "Set Sur Name"))
-	void SetSurName(const FString& NewName) { SurName = NewName; }
-
-
-	UFUNCTION(BlueprintGetter, Category = "UserSubSystem", meta = (Keywords = "Get Year Birth"))
-	int GetYearOfBirth() const { return YearOfBirth; }
-
-	UFUNCTION(BlueprintSetter, Category = "UserSubSystem", meta = (Keywords = "Set Sur Name"))
-	void SetYearOfBirth(int value) { YearOfBirth = value; }
-
-
-	UFUNCTION(BlueprintGetter, Category = "UserSubSystem", meta = (Keywords = "Get Height"))
-	int GetHeight() const { return Height; }
-
-	UFUNCTION(BlueprintSetter, Category = "UserSubSystem", meta = (Keywords = "Set Height"))
-	void SetHeight(int value) { Height = value; }
-
-	UFUNCTION(BlueprintGetter, Category = "UserSubSystem", meta = (Keywords = "Get Directory"))
-	const FString& GetUserDirectory() const { return UserDirectory; }
-
-	UFUNCTION(BlueprintSetter, Category = "UserSubSystem", meta = (Keywords = "Set Directory"))
-	void SetUserDirectory(const FString& NewDirectory);
-
-
-	
 };

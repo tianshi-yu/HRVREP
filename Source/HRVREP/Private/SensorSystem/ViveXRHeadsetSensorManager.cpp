@@ -47,10 +47,19 @@ void UViveXRHeadsetSensorManager::UpdateReadings()
 	Readings.Add("GazeDirtY-" + Name, GazeData.GazeDirection.Y);
 	Readings.Add("GazeDirtZ-" + Name, GazeData.GazeDirection.Z);
 	// Pupil
-	Readings.Add("ValidREyeDiam-" + Name, PupilData.rightEyeDiameterValid);
-	Readings.Add("REyeDiam-" + Name, PupilData.rightEyePupilDiameter);
-	Readings.Add("ValidLEyeDiam-" + Name, PupilData.leftEyeDiameterValid);
-	Readings.Add("LEyeDiam-" + Name, PupilData.leftEyePupilDiameter);
+	Readings.Add("ValidREyePupil-" + Name, PupilData.rightEyeDiameterValid);
+	Readings.Add("RPupilDiam-" + Name, PupilData.rightEyePupilDiameter);
+	Readings.Add("ValidLEyePupil-" + Name, PupilData.leftEyeDiameterValid);
+	Readings.Add("LPupilDiam-" + Name, PupilData.leftEyePupilDiameter);
+	// Eye Geometry
+	Readings.Add("ValidREyeGeom-" + Name, GazeGeoData.rightEyeIsValid);
+	Readings.Add("REyeOpeness-" + Name, GazeGeoData.rightEyeOpenness);
+	Readings.Add("REyeSqueeze-" + Name, GazeGeoData.rightEyeSqueeze);
+	Readings.Add("REyeWide-" + Name, GazeGeoData.rightEyeWide);
+	Readings.Add("ValidLEyeGeom-" + Name, GazeGeoData.leftEyeIsValid);
+	Readings.Add("LEyeOpeness-" + Name, GazeGeoData.leftEyeOpenness);
+	Readings.Add("LEyeSqueeze-" + Name, GazeGeoData.leftEyeSqueeze);
+	Readings.Add("LEyeWide-" + Name, GazeGeoData.leftEyeWide);
 
 
 
