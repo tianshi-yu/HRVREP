@@ -19,8 +19,8 @@ struct FGenericUserData
 
 public:
 	FGenericUserData()
-		: FirstName("Test")
-		, SurName("Bot")
+		: FirstName("Default")
+		, SurName("Default")
 		, YearOfBirth(1995)
 		, Height(175)
 	{}

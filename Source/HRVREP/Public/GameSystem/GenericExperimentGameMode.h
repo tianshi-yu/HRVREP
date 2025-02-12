@@ -31,6 +31,8 @@ enum class ETaskState : uint8
 };
 
 
+
+
 UCLASS(Blueprintable)
 class HRVREP_API AGenericExperimentGameMode : public AGameModeBase
 {
@@ -152,13 +154,16 @@ protected:
 	int32 IterationNumber;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experiment")
-	int32 MaxIteration;
+	TArray<int32> MaxIteration;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Experiment")
 	int32 SessionNumber;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experiment")
 	int32 MaxSession;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experiment")
+	bool Debug;
 
 
 };

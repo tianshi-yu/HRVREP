@@ -6,44 +6,100 @@
 #include "Misc/FileHelper.h"
 #include "HAL/PlatformFilemanager.h"
 
-void UUserSubSystem::SetUserDirectory(const FString& NewDirectory)
+void UUserSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
-	if (NewDirectory == "")
+	
+
+	FString CombineSaveDirectory = FPaths::Combine(FPaths::ProjectDir(), "SavedUserData");
+	this->PersistentSaveDirectory = CombineSaveDirectory;
+	UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: UserSubSystem Initialized"));
+	UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: Persistent Save Directory %s"), *PersistentSaveDirectory);
+	Super::Initialize(Collection);
+
+}
+
+void UUserSubSystem::Deinitialize()
+{
+	
+	UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: UserSubSystem Deinitialized"));
+	Super::Deinitialize();
+	
+}
+
+//
+// Set user data save directory, use InDirectory to specify the path, "" will use the persistent path
+//
+void UUserSubSystem::SetUserDirectory(const FString& InDirectory)
+{
+	if (InDirectory == "")
 	{
-		FString UserSpecifcPath = FString::Printf(TEXT("%c%c%d%d"),
+		FString UserSpecifcPath = FString::Printf(TEXT("USER_%c%c%d%d"),
 			this->UserData.FirstName[0],
 			this->UserData.SurName[0],
 			this->UserData.YearOfBirth,
 			this->UserData.Height);
-		FString GenerateDirectoryPath = FPaths::Combine(FPaths::ProjectDir(), "SavedUserData",UserSpecifcPath);
+		FString GenerateDirectoryPath = FPaths::Combine(this->PersistentSaveDirectory,UserSpecifcPath);
 		
 		this->UserDirectory = GenerateDirectoryPath;
 
 	}
 	else
 	{
-		this->UserDirectory = NewDirectory;
+		this->UserDirectory = InDirectory;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("User Save Directory Set to '%s'."), *UserDirectory);
+	UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: User Save Directory Set to '%s'."), *UserDirectory);
 	
 }
 
-void UUserSubSystem::SaveUserData(const FString& NewDirectory)
+//
+// Save user data, use InDirectory to specify the path, "" will use the persistent path
+//
+void UUserSubSystem::SaveUserData(const FString& InDirectory)
 {
 	FString OutJsonString;
 	FJsonObjectConverter::UStructToJsonObjectString(UserData, OutJsonString);
-	if (NewDirectory == "")
+	if (InDirectory == "")
 	{
 
-		FFileHelper::SaveStringToFile(OutJsonString,*FPaths::Combine(UserDirectory,"UserInfo.Json"));
-		UE_LOG(LogTemp, Warning, TEXT("User Data Saved to User Directory '%s'."), *UserDirectory);
+		FFileHelper::SaveStringToFile(OutJsonString,*FPaths::Combine(UserDirectory,"UserInfo.json"));
+		UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: User Data Saved to User Directory '%s'."), *UserDirectory);
 	}
 	else
 	{
-		FFileHelper::SaveStringToFile(OutJsonString, *FPaths::Combine(NewDirectory, "UserInfo.Json"));
-		UE_LOG(LogTemp, Warning, TEXT("User Data Saved to Customed Directory '%s'."), *NewDirectory);
+		FFileHelper::SaveStringToFile(OutJsonString, *FPaths::Combine(InDirectory, "UserInfo.json"));
+		UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: User Data Saved to Customed Directory '%s'."), *InDirectory);
 	}
 	
+}
+
+//
+// Load user data with the ID (user folder name), use InDirectory to specify the path, "" will use the persistent path
+//
+void UUserSubSystem::LoadUserData(const FString& InUserID, const FString& InDirectory)
+{
+	FString JsonString;
+	FString Path;
+	if (InDirectory == "")
+	{
+		Path = FPaths::Combine(PersistentSaveDirectory, InUserID, "UserInfo.json");
+	}
+	else
+	{
+		Path = FPaths::Combine(InDirectory, InUserID, "UserInfo.json");
+	}
+
+	if(FFileHelper::LoadFileToString(JsonString, *Path))
+	{
+		FJsonObjectConverter::JsonObjectStringToUStruct(JsonString, &UserData);
+		UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: User Data of '%s' is loaded."), *UserData.FirstName);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("Subsystem Log: Failed to load the JSON file."));
+	}
+
+	// Finally set the new save directory
+	SetUserDirectory(InDirectory);
 }
 

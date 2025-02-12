@@ -11,8 +11,9 @@ void AGenericExperimentGameMode::BeginPlay()
 	Super::BeginPlay();
 	
 	ExperimentState = EExperimentState::InitExperiment;
-	InitSystem();
 	InitExperiment();
+	InitSystem();
+	
 	
 	ExperimentState = EExperimentState::Training;
 	InitTraining();
@@ -69,10 +70,15 @@ void AGenericExperimentGameMode::Tick(float DeltaSecond)
 						if (ExperimentComplete)
 						{
 							UE_LOG(LogTemp, Warning, TEXT("Game Mode: Experiment Complete."));
+							ExperimentState = EExperimentState::EndExperiment;
 							EndPlay(EEndPlayReason::Quit);
+							break; // no need to go through iteration and session init
 						}
+						InitSession();
 					}
+					InitIteration();
 				}
+				
 			}
 			break;
 	}
@@ -114,8 +120,6 @@ void AGenericExperimentGameMode::InitIteration_Implementation()
 
 }
 
-
-
 void AGenericExperimentGameMode::HandleTrainingProcess_Implementation()
 {
 }
@@ -146,8 +150,6 @@ void AGenericExperimentGameMode::CheckIterationComplete_Implementation(bool& Out
 	if (TaskListNumber >= TaskList.Num())
 	{
 		OutComplete = true;
-		TaskListNumber = 0;
-		IterationNumber += 1;
 	}
 	else
 	{
@@ -157,16 +159,15 @@ void AGenericExperimentGameMode::CheckIterationComplete_Implementation(bool& Out
 
 void AGenericExperimentGameMode::HandleIterationComplete_Implementation()
 {
+	TaskListNumber = 0;
 	IterationNumber += 1;
 }
 
 void AGenericExperimentGameMode::CheckSessionComplete_Implementation(bool& OutComplete)
 {
-	if (IterationNumber > MaxIteration)
+	if (IterationNumber > MaxIteration[SessionNumber - 1])
 	{
 		OutComplete = true;
-		IterationNumber = 1;
-		SessionNumber += 1;
 	}
 	else
 	{
@@ -176,6 +177,8 @@ void AGenericExperimentGameMode::CheckSessionComplete_Implementation(bool& OutCo
 
 void AGenericExperimentGameMode::HandleSessionComplete_Implementation()
 {
+	IterationNumber = 1;
+	SessionNumber += 1;
 }
 
 void AGenericExperimentGameMode::CheckExperimentComplete_Implementation(bool& OutComplete)

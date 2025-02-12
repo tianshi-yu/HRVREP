@@ -7,12 +7,12 @@
 void UDataLoggerSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	UE_LOG(LogTemp, Display, TEXT("Subsystem Log: DataLoggerSubSystem Initialized"));
+	UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: DataLoggerSubSystem Initialized"));
 }
 
 void UDataLoggerSubSystem::Deinitialize()
 {
-	UE_LOG(LogTemp, Display, TEXT("Subsystem Log: DataLoggerSubSystem Deinitialized"));
+	UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: DataLoggerSubSystem Deinitialized"));
 	Super::Deinitialize();
 }
 
@@ -63,12 +63,12 @@ bool UDataLoggerSubSystem::RemoveDataLogger(const FString& LoggerName)
 }
 
 //
-//End a datalogger and save
+//End a datalogger and remove from list
 //
 bool UDataLoggerSubSystem::EndDataLogger(const FString& LoggerName)
 {
 	DataLoggerMap[LoggerName]->CloseLogger();
-	return true;
+	return RemoveDataLogger(LoggerName);
 }
 
 //

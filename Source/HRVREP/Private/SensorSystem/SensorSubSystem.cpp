@@ -9,7 +9,7 @@
 void USensorSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	UE_LOG(LogTemp, Display, TEXT("Subsysmtem Log: SensorSubSystem Initialized"));
+	UE_LOG(LogTemp, Warning, TEXT("Subsysmtem Log: SensorSubSystem Initialized"));
 }
 
 //
@@ -17,7 +17,7 @@ void USensorSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 //
 void USensorSubSystem::Deinitialize()
 {
-	UE_LOG(LogTemp, Display, TEXT("Subsysmtem Log: SensorSubSystem Deinitialized"));
+	UE_LOG(LogTemp, Warning, TEXT("Subsysmtem Log: SensorSubSystem Deinitialized"));
 	Super::Deinitialize();
 }
 
