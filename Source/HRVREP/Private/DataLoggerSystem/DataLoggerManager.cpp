@@ -43,7 +43,7 @@ void UDataLoggerManager::SetFileName(const FString& FileName)
 void UDataLoggerManager::SetDataHeader(const FString& InHeader)
 {
 	this->DataHeader = InHeader;
-
+	LogNewData(InHeader);
 }
 
 

@@ -16,6 +16,7 @@ enum class EExperimentState : uint8
 	InitExperiment      UMETA(DisplayName = "InitExperiment"),
 	Training   UMETA(DisplayName = "Training"),
 	PerformingTask   UMETA(DisplayName = "PerformingTask"),
+	TaskFail   UMETA(DisplayName = "TaskFail"),
 	EndExperiment UMETA(DisplayName = "EndExperiment")
 };
 
@@ -78,10 +79,17 @@ protected:
 	void InitIteration();
 	virtual void InitIteration_Implementation();
 
+	// Initialise iteration
+	UFUNCTION(BlueprintNativeEvent, Category = "Experiment Game mode", meta = (Keywords = "Init Task"))
+	void InitTask();
+	virtual void InitTask_Implementation();
+
 
 	// 
 	//******************************* Handle Behaviour Part **************************************//
 	//
+	 
+	//******************************* Training **************************************//
 	// Handle traning process
 	UFUNCTION(BlueprintNativeEvent, Category = "Experiment Game mode", meta = (Keywords = "Handle Training"))
 	void HandleTrainingProcess();
@@ -97,6 +105,7 @@ protected:
 	void HandleTrainingComplete();
 	virtual void HandleTrainingComplete_Implementation();
 
+	//******************************* In Task **************************************//
 	// Handle task process
 	UFUNCTION(BlueprintNativeEvent, Category = "Experiment Game mode", meta = (Keywords = "Handle Task Process"))
 	void HandleTaskProcess();
@@ -112,6 +121,17 @@ protected:
 	void HandleTaskComplete();
 	virtual void HandleTaskComplete_Implementation();
 
+	// Check if task fail
+	UFUNCTION(BlueprintNativeEvent, Category = "Experiment Game mode", meta = (Keywords = "Check Task Complete"))
+	void CheckTaskFail(bool& OutFail);
+	virtual void CheckTaskFail_Implementation(bool& OutFail);
+
+	// Handle task fail
+	UFUNCTION(BlueprintNativeEvent, Category = "Experiment Game mode", meta = (Keywords = "Handle Task Complete"))
+	void HandleTaskFail();
+	virtual void HandleTaskFail_Implementation();
+
+	//******************************* Iteration **************************************//
 	// Check if iteration is done
 	UFUNCTION(BlueprintNativeEvent, Category = "Experiment Game mode", meta = (Keywords = "Check Iteration Complete"))
 	void CheckIterationComplete(bool& OutComplete);
@@ -122,6 +142,7 @@ protected:
 	void HandleIterationComplete();
 	virtual void HandleIterationComplete_Implementation();
 
+	//******************************* Session **************************************//
 	// Check if session is done
 	UFUNCTION(BlueprintNativeEvent, Category = "Experiment Game mode", meta = (Keywords = "Check Session Complete"))
 	void CheckSessionComplete(bool& OutComplete);
@@ -132,6 +153,8 @@ protected:
 	void HandleSessionComplete();
 	virtual void HandleSessionComplete_Implementation();
 
+
+	//******************************* Experiment **************************************//
 	// Check if experiment is done
 	UFUNCTION(BlueprintNativeEvent, Category = "Experiment Game mode", meta = (Keywords = "Check Experiment Complete"))
 	void CheckExperimentComplete(bool& OutComplete);
@@ -145,10 +168,18 @@ protected:
 	ETaskState TaskState;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experiment")
+	FTransform PlayerSpawnTransform;
+	
+	
+	//******************************* Experiment Settings **************************************//
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Experiment")
 	TArray<FString> TaskList;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Experiment")
-	int32 TaskListNumber;
+	int32 TaskNumber;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Experiment")
+	int32 TaskAttemptNumber;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Experiment")
 	int32 IterationNumber;

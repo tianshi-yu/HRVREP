@@ -18,7 +18,6 @@ void AGenericExperimentGameMode::BeginPlay()
 	ExperimentState = EExperimentState::Training;
 	InitTraining();
 	
-	
 }
 
 //
@@ -34,22 +33,39 @@ void AGenericExperimentGameMode::Tick(float DeltaSecond)
 			break;
 
 		case EExperimentState::Training:
-			bool TrainingComplete;
 			HandleTrainingProcess();
+			bool TrainingTaskFail;
+			CheckTaskFail(TrainingTaskFail);
+			bool TrainingComplete;
 			CheckTrainingComplete(TrainingComplete);
-			if (TrainingComplete)
+			if (TrainingTaskFail)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Game Mode: Task Failed."));
+				InitTask();
+				break;
+			}
+			else if (TrainingComplete)
 			{
 				HandleTrainingComplete();
 				ExperimentState = EExperimentState::PerformingTask;
 				UE_LOG(LogTemp, Warning, TEXT("Game Mode: Training Complete. Start Task."));
+				break;
 			}	
 			break;
 
 		case EExperimentState::PerformingTask:
 			HandleTaskProcess();
+			bool TaskFail;
+			CheckTaskFail(TaskFail);
 			bool TaskComplete;
 			CheckTaskComplete(TaskComplete);
-			if (TaskComplete)
+			if (TaskFail)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Game Mode: Task Failed."));
+				ExperimentState = EExperimentState::TaskFail;
+				break;
+			}
+			else if (TaskComplete)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Game Mode: Task Complete."));
 				HandleTaskComplete();
@@ -81,6 +97,12 @@ void AGenericExperimentGameMode::Tick(float DeltaSecond)
 				
 			}
 			break;
+
+			case EExperimentState::TaskFail:
+				HandleTaskFail();
+				InitTask();
+				ExperimentState = EExperimentState::PerformingTask;
+				break;
 	}
 	
 }
@@ -105,7 +127,8 @@ void AGenericExperimentGameMode::InitTraining_Implementation()
 
 void AGenericExperimentGameMode::InitExperiment_Implementation()
 {
-	TaskListNumber = 0;
+	TaskNumber = 0;
+	TaskAttemptNumber = 1;
 	IterationNumber = 1;
 	SessionNumber = 1;
 }
@@ -118,6 +141,10 @@ void AGenericExperimentGameMode::InitSession_Implementation()
 void AGenericExperimentGameMode::InitIteration_Implementation()
 {
 
+}
+
+void AGenericExperimentGameMode::InitTask_Implementation()
+{
 }
 
 void AGenericExperimentGameMode::HandleTrainingProcess_Implementation()
@@ -142,12 +169,23 @@ void AGenericExperimentGameMode::CheckTaskComplete_Implementation(bool& OutCompl
 
 void AGenericExperimentGameMode::HandleTaskComplete_Implementation()
 {
-	TaskListNumber += 1;
+	TaskAttemptNumber = 1;
+	TaskNumber += 1;
+}
+
+void AGenericExperimentGameMode::CheckTaskFail_Implementation(bool& OutFail)
+{
+
+}
+
+void AGenericExperimentGameMode::HandleTaskFail_Implementation()
+{
+	TaskAttemptNumber += 1;
 }
 
 void AGenericExperimentGameMode::CheckIterationComplete_Implementation(bool& OutComplete)
 {
-	if (TaskListNumber >= TaskList.Num())
+	if (TaskNumber >= TaskList.Num())
 	{
 		OutComplete = true;
 	}
@@ -159,7 +197,7 @@ void AGenericExperimentGameMode::CheckIterationComplete_Implementation(bool& Out
 
 void AGenericExperimentGameMode::HandleIterationComplete_Implementation()
 {
-	TaskListNumber = 0;
+	TaskNumber = 0;
 	IterationNumber += 1;
 }
 

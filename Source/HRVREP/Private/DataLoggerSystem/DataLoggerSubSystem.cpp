@@ -67,8 +67,16 @@ bool UDataLoggerSubSystem::RemoveDataLogger(const FString& LoggerName)
 //
 bool UDataLoggerSubSystem::EndDataLogger(const FString& LoggerName)
 {
-	DataLoggerMap[LoggerName]->CloseLogger();
-	return RemoveDataLogger(LoggerName);
+	if (DataLoggerMap.Contains(LoggerName))
+	{
+		DataLoggerMap[LoggerName]->CloseLogger();
+		RemoveDataLogger(LoggerName);
+		return true;
+	}
+	{
+		return false;
+	}
+
 }
 
 //
