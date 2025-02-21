@@ -23,8 +23,6 @@ void UViveXRHeadsetSensorManager::UpdateReadings()
 	FQuat HMDRotation = ActiveCamera->GetCameraRotation().Quaternion();
 
 
-
-	
 	// Add to readings
 	// HMD
 	Readings.Add("LocX-" + Name, HMDLocation.X);

@@ -9,9 +9,10 @@
 
 /**
  * Generic sensor manager class implement the ISensorManager interface
+ * Manage sensor initialisation, registration and data logging
  */
 UCLASS(Blueprintable)
-class HRVREP_API UGenericSensorManager : public UObject, public ISensorManager
+class HRVREP_API UGenericSensorManager : public UActorComponent, public ISensorManager
 {
 	GENERATED_BODY()
 

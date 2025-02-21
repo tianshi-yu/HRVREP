@@ -8,12 +8,13 @@
 #include "ViveOpenXREyeTrackerFunctionLibrary.h"
 #include "HTCEyeTrackerTypes.h"
 #include "EyeTrackerFunctionLibrary.h"
+#include "ChaosVehicleMovementComponent.h"
 #include "ViveXRHeadsetSensorManager.generated.h"
 
 /**
  * Sensor manager class of the VIVE XR Elite Headset and attached VIVE Full Face tracker
  */
-UCLASS(Blueprintable)
+UCLASS(Blueprintable, ClassGroup = (CustomSensor), meta = (BlueprintSpawnableComponent))
 class HRVREP_API UViveXRHeadsetSensorManager : public UGenericSensorManager 
 {
 	GENERATED_BODY()

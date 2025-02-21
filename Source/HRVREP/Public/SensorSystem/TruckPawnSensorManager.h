@@ -11,7 +11,7 @@
 /**
  * Sensor manager class of the truck pawn
  */
-UCLASS(Blueprintable)
+UCLASS(Blueprintable, ClassGroup = (CustomSensor), meta = (BlueprintSpawnableComponent))
 class HRVREP_API UTruckPawnSensorManager : public UGenericSensorManager
 {
 	GENERATED_BODY()
@@ -34,7 +34,7 @@ public:
 
 private:
 	
-	UPROPERTY()
-	UChaosVehicleMovementComponent* Vehicle;
+	UPROPERTY(BlueprintSetter = SetVehicleComponent, Category = "TruckPawnSensorManager")
+	UChaosVehicleMovementComponent* Vehicle; // Life cycle of vehicle is managed by the engine
 	
 };

@@ -42,7 +42,7 @@ void UTruckPawnSensorManager::SetVehicleComponent(UChaosVehicleMovementComponent
 void UTruckPawnSensorManager::UpdateReadings()
 {
 	// Some information require the wheeled vehicle component
-	UChaosWheeledVehicleMovementComponent* WheeledVehicle = Cast<UChaosWheeledVehicleMovementComponent>(Vehicle); 
+	UChaosWheeledVehicleMovementComponent* WheeledVehicle = Cast<UChaosWheeledVehicleMovementComponent>(Vehicle);
 	
 	Readings.Add("LocX-" + Name, Vehicle->GetActorLocation().X);
 	Readings.Add("LocY-" + Name, Vehicle->GetActorLocation().Y);
