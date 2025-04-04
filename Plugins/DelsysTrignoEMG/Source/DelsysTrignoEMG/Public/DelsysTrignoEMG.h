@@ -63,7 +63,8 @@ public:
 
 private:
     // Send command to Trigno Control Utility server
-    FString SendCommand(FString Command);
+    //TFuture<FString> SendCommand(FString Command);
+    void SendCommand(FString Command, TFunction<void(FString)> Callback);
 
     // Acquire data
     void AcquireData();

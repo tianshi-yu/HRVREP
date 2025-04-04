@@ -45,37 +45,6 @@ bool UDelsysTrignoEMG::Connect()
         
         bConnected = true;
 
-        FString Response = SendCommand(COMMAND_START);
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *COMMAND_START);
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
-
-        /*
-        FString Query = FString::Printf(TEXT("SENSOR %d %s"), 1, *COMMAND_SENSOR_TYPE);
-        FString Response = SendCommand(Query);
-
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *Query);
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
-
-        Query = FString::Printf(TEXT("SENSOR %d %s"), 1, *COMMAND_SENSOR_TYPE);
-        Response = SendCommand(Query);
-
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *Query);
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
-        */
-
-
-
-        // Get initial response from server and an extra line terminator
-        /*
-        TArray<uint8> ResponseBytes;
-        uint8 TempBuffer[1024]; // buffer for response
-        int32 BytesRead = 0;
-        FString Response;
-
-        CommandSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead);
-        Response = FString(UTF8_TO_TCHAR((const char*)ResponseBytes.GetData()));
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
-        */
     }
     else
     {
@@ -87,7 +56,12 @@ bool UDelsysTrignoEMG::Connect()
     for (int i = 1; i <= 16; i++)
     {
         FString Command = FString::Printf(TEXT("SENSOR %d %s"), i, *COMMAND_SENSOR_TYPE);
-        FString Response = SendCommand(Command);
+        FString Response;
+        SendCommand(Command, [&Response](FString OutResponse)
+        {
+                Response = OutResponse;
+        });
+        //FString Response = SendCommand(Command);
 
         UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *Command);
         UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
@@ -107,11 +81,21 @@ bool UDelsysTrignoEMG::Connect()
 
     // Config sensors, not finished to be added
     FString Command = TEXT("UPSAMPLE ON");
-    FString Response = SendCommand(Command);
+    //FString Response = SendCommand(Command);
+    FString Response;
+    SendCommand(Command, [&Response](FString OutResponse)
+    {
+        Response = OutResponse;
+    });
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *Command);
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
 
-    Response = SendCommand(COMMAND_START);
+    //Response = SendCommand(COMMAND_START);
+    Response;
+    SendCommand(Command, [&Response](FString OutResponse)
+    {
+        Response = OutResponse;
+    });
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *COMMAND_START);
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
 
@@ -135,7 +119,12 @@ void UDelsysTrignoEMG::Close()
     }
 
     // Send QUIT command to server
-    SendCommand(COMMAND_QUIT);
+    //SendCommand(COMMAND_QUIT);
+    FString Response;
+    SendCommand(COMMAND_QUIT, [&Response](FString OutResponse)
+    {
+        Response = OutResponse;
+    });
     bConnected = false;
     CommandSocket->Close();
     UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Disconnect with Delsys Trigno Control Utility!"));
@@ -172,7 +161,13 @@ void UDelsysTrignoEMG::StartAcquisition()
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG acquisition started!"));
 
     // Send start command to server to let it start streaming data
-    FString Response = SendCommand(COMMAND_START);
+    //FString Response = SendCommand(COMMAND_START);
+    FString Response;
+    SendCommand(COMMAND_START, [&Response](FString OutResponse)
+    {
+        Response = OutResponse;
+    });
+
 
     if (Response.StartsWith("OK"))
     {
@@ -218,47 +213,53 @@ TArray<float> UDelsysTrignoEMG::GetRawEMGData() const
     return TArray<float>();
 }
 
-FString UDelsysTrignoEMG::SendCommand(FString Command)
+void UDelsysTrignoEMG::SendCommand(FString Command, TFunction<void(FString)> Callback)
 {
-    FString Response = "";
-
-    if (bConnected)
+    Async(EAsyncExecution::Thread, [this, Command, Callback]()
     {
+        FString Response = "";
 
-        // Convert the command to a byte array 
-        FString CommandString = Command + "\n";
-        TCHAR* CommandChar = CommandString.GetCharArray().GetData();
-        
-        FTCHARToUTF8 Converter(CommandChar);
-        //CommandBytes.Append((const uint8*)Converter.Get(), Converter.Length(),0);
-
-        // Send the command
-        int32 BytesSent = 0;
-        bool bSent = CommandSocket->Send((uint8*)Converter.Get(), Converter.Length(), BytesSent);
-        if (bSent)
+        if (bConnected)
         {
-            // Read the response (this assumes you can handle socket reading correctly)
-            TArray<uint8> ResponseBytes;
-            uint8 TempBuffer[1024]; // buffer for response
 
-            int32 BytesRead = 0;
-            bool bReceived = CommandSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead);
-            if (bReceived && BytesRead > 0)
+            // Convert the command to a byte array 
+            FString CommandString = Command + "\n";
+            TCHAR* CommandChar = CommandString.GetCharArray().GetData();
+
+            FTCHARToUTF8 Converter(CommandChar);
+            //CommandBytes.Append((const uint8*)Converter.Get(), Converter.Length(),0);
+
+            // Send the command
+            int32 BytesSent = 0;
+            bool bSent = CommandSocket->Send((uint8*)Converter.Get(), Converter.Length(), BytesSent);
+            if (bSent)
             {
-                ResponseBytes.Append(TempBuffer, BytesRead);
-                FString ResponseString = FString(UTF8_TO_TCHAR((const char*)ResponseBytes.GetData()));
-                Response = ResponseString;
+                // Read the response (this assumes you can handle socket reading correctly)
+                TArray<uint8> ResponseBytes;
+                uint8 TempBuffer[1024]; // buffer for response
+
+                int32 BytesRead = 0;
+                bool bReceived = CommandSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead);
+                if (bReceived && BytesRead > 0)
+                {
+                    ResponseBytes.Append(TempBuffer, BytesRead);
+                    FString ResponseString = FString(UTF8_TO_TCHAR((const char*)ResponseBytes.GetData()));
+                    Response = ResponseString;
+                }
+            }
+            else
+            {
+                UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Failed to send command to Trigno sensor base!"));
             }
         }
         else
         {
-            UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Failed to send command to Trigno sensor base!"));
+            UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Delsys Trigno Control Utility not connected!"));
         }
-    }
-    else
-    {
-        UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Delsys Trigno Control Utility not connected!"));
-    }
-
-    return Response;
+        // Return on game thread
+        AsyncTask(ENamedThreads::GameThread, [Callback, Response]()
+        {
+            Callback(Response);
+        });
+    });
 }
