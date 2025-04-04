@@ -26,7 +26,7 @@ bool UDelsysTrignoEMG::Connect()
     // Instantiate the command socket
     ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
     CommandSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("DelsysCommandSocket"), false));
-    CommandSocket->SetNonBlocking(false);
+    CommandSocket->SetNonBlocking(false); // Blocking for reques-reply mode
     CommandSocket->SetReuseAddr(true);
 
     // IP address and port
@@ -61,10 +61,8 @@ bool UDelsysTrignoEMG::Connect()
         {
                 Response = OutResponse;
         });
-        //FString Response = SendCommand(Command);
 
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *Command);
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
+        
 
         //SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypeDict[Response]);
         SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypes::SensorTrignoImu);
@@ -87,17 +85,14 @@ bool UDelsysTrignoEMG::Connect()
     {
         Response = OutResponse;
     });
-    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *Command);
-    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
 
     //Response = SendCommand(COMMAND_START);
     Response;
-    SendCommand(Command, [&Response](FString OutResponse)
+    SendCommand(COMMAND_START, [&Response](FString OutResponse)
     {
         Response = OutResponse;
     });
-    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *COMMAND_START);
-    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
+
 
     return bConnected;
 }
@@ -221,9 +216,10 @@ void UDelsysTrignoEMG::SendCommand(FString Command, TFunction<void(FString)> Cal
 
         if (bConnected)
         {
+            UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *Command);
 
             // Convert the command to a byte array 
-            FString CommandString = Command + "\n";
+            FString CommandString = Command;
             TCHAR* CommandChar = CommandString.GetCharArray().GetData();
 
             FTCHARToUTF8 Converter(CommandChar);
@@ -234,6 +230,13 @@ void UDelsysTrignoEMG::SendCommand(FString Command, TFunction<void(FString)> Cal
             bool bSent = CommandSocket->Send((uint8*)Converter.Get(), Converter.Length(), BytesSent);
             if (bSent)
             {
+                //bool bHasReply = CommandSocket->Wait(ESocketWaitConditions::WaitForRead, FTimespan::FromSeconds(3));
+                //if (bHasReply)
+                //{
+                    // Wait for data coming
+                    //uint32 PendingDataSize = 0;
+                    //if (CommandSocket->HasPendingData(PendingDataSize))
+
                 // Read the response (this assumes you can handle socket reading correctly)
                 TArray<uint8> ResponseBytes;
                 uint8 TempBuffer[1024]; // buffer for response
@@ -246,10 +249,13 @@ void UDelsysTrignoEMG::SendCommand(FString Command, TFunction<void(FString)> Cal
                     FString ResponseString = FString(UTF8_TO_TCHAR((const char*)ResponseBytes.GetData()));
                     Response = ResponseString;
                 }
+                UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Get response from Trigno Control Utility!"));
+                //}
+               
             }
             else
             {
-                UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Failed to send command to Trigno sensor base!"));
+                UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Failed to send command to Trigno Control Utility!"));
             }
         }
         else
@@ -259,6 +265,8 @@ void UDelsysTrignoEMG::SendCommand(FString Command, TFunction<void(FString)> Cal
         // Return on game thread
         AsyncTask(ENamedThreads::GameThread, [Callback, Response]()
         {
+        
+            UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
             Callback(Response);
         });
     });
