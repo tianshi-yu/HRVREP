@@ -1,0 +1,24 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "DelsysTrignoEMG",
+	"Description": "Delsys Trigno EMG sensor data aqcuisition plugin using the Trigno Control Utility (SDK)",
+	"Category": "Other",
+	"CreatedBy": "Tianshi Yu",
+	"CreatedByURL": "https://github.com/tianshi-yu",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": false,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "DelsysTrignoEMG",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	]
+}
