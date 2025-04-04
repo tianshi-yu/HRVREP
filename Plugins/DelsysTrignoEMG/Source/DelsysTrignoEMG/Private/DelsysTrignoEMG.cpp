@@ -52,8 +52,8 @@ bool UDelsysTrignoEMG::Connect()
         FString Query = FString::Printf(TEXT("SENSOR %d %s"), i, *COMMAND_SENSOR_TYPE);
         FString Response = SendCommand(Query);
 
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys-> %s"), *Query);
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<- Server Delsys %s"), *Response);
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("-> %s"), *Query);
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
 
         SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypeDict[Response]);
     }
