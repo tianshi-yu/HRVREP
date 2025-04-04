@@ -26,7 +26,8 @@ bool UDelsysTrignoEMG::Connect()
     // Instantiate the command socket
     ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
     CommandSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("DelsysCommandSocket"), false));
-    CommandSocket->SetNonBlocking();
+    CommandSocket->SetNonBlocking(false);
+    CommandSocket->SetReuseAddr(true);
 
     // IP address and port
     FIPv4Address IP;
@@ -225,8 +226,9 @@ FString UDelsysTrignoEMG::SendCommand(FString Command)
     {
 
         // Convert the command to a byte array 
-        TCHAR* CommandChar = Command.GetCharArray().GetData();
-        //FString CommandString = Command;
+        FString CommandString = Command + "\n";
+        TCHAR* CommandChar = CommandString.GetCharArray().GetData();
+        
         FTCHARToUTF8 Converter(CommandChar);
         //CommandBytes.Append((const uint8*)Converter.Get(), Converter.Length(),0);
 
