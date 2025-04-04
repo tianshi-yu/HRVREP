@@ -10,7 +10,7 @@
 /**
  * 
  */
-UCLASS(Blueprintable, ClassGroup = (CustomSensor), meta = (BlueprintSpawnableComponent))
+UCLASS(Blueprintable, ClassGroup = (DelsysTrignoEMGSensor), meta = (BlueprintSpawnableComponent))
 class DELSYSTRIGNOEMG_API UDelsysTrignoEMG : public UActorComponent
 {
 	GENERATED_BODY()

@@ -38,7 +38,23 @@ bool UDelsysTrignoEMG::Connect()
     if (CommandSocket->Connect(*Addr))
     {
         UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to Delsys Trigno Control Utility server!"));
+        
         bConnected = true;
+
+        // Get initial response from server and an extra line terminator
+        TArray<uint8> ResponseBytes;
+        uint8 TempBuffer[1024]; // buffer for response
+        int32 BytesRead = 0;
+        FString Response;
+
+        CommandSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead);
+        Response = FString(UTF8_TO_TCHAR((const char*)ResponseBytes.GetData()));
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
+
+        CommandSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead);
+        Response = FString(UTF8_TO_TCHAR((const char*)ResponseBytes.GetData()));
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
+
     }
     else
     {
