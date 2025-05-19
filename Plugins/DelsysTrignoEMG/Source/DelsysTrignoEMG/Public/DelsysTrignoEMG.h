@@ -107,7 +107,7 @@ private:
     FString IMUFileName;
 
     // Sensor data acquisition worker thread
-    class FTrignoWorkerThread : public FRunnable
+    class FTrignoAcquisitionThread : public FRunnable
     {
     private:
         TSharedPtr<UDelsysTrignoEMG> Owner;
@@ -115,7 +115,7 @@ private:
         bool bRunning;
 
     public:
-        FTrignoWorkerThread(UDelsysTrignoEMG* InOwner) : Owner(InOwner), bRunning(true)
+        FTrignoAcquisitionThread(UDelsysTrignoEMG* InOwner) : Owner(InOwner), bRunning(true)
         {
             Thread = TUniquePtr<FRunnableThread>(FRunnableThread::Create(this, TEXT("EMGThread"), 0, TPri_Normal));
         }
@@ -139,9 +139,10 @@ private:
         }
 
         void Stop() { bRunning = false; }
-        ~FTrignoWorkerThread() { if (Thread) { Thread ->WaitForCompletion(); } }
+        ~FTrignoAcquisitionThread() { if (Thread) { Thread ->WaitForCompletion(); } }
     };
 
-    TUniquePtr<FTrignoWorkerThread> TrignoWorkerThreadInstance;
+    TUniquePtr<FTrignoAcquisitionThread> TrignoAcquisitionThreadInstance;
+
 	
 };

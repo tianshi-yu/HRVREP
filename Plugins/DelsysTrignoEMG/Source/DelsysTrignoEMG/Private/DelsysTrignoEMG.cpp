@@ -42,9 +42,7 @@ bool UDelsysTrignoEMG::Connect()
     if (CommandSocket->Connect(*Addr))
     {
         UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to Delsys Trigno Control Utility server!"));
-        
         bConnected = true;
-
     }
     else
     {
@@ -52,46 +50,61 @@ bool UDelsysTrignoEMG::Connect()
         bConnected = false;
     }
 
-    // Build a list of connected sensor types
-    for (int i = 1; i <= 16; i++)
-    {
-        FString Command = FString::Printf(TEXT("SENSOR %d %s"), i, *COMMAND_SENSOR_TYPE);
-        FString Response;
-        SendCommand(Command, [&Response](FString OutResponse)
+    // Use async task to setup the sensor list and sensor configs
+    // Avoid block the main game thread
+    Async(EAsyncExecution::Thread, [this]()
         {
-                Response = OutResponse;
+            if (bConnected)
+            {
+                // Build a list of connected sensor types
+                for (int i = 1; i <= 16; i++)
+                {
+                    FString Command = FString::Printf(TEXT("SENSOR %d %s"), i, *COMMAND_SENSOR_TYPE);
+                    FString Response;
+                    SendCommand(Command, [&Response](FString OutResponse)
+                        {
+                            Response = OutResponse;
+                        });
+
+
+
+                    //SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypeDict[Response]);
+                    SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypes::SensorTrignoImu);
+                }
+
+                // Record the active sensor channel number
+                for (int i = 0; i < 16; i++)
+                {
+                    if (SensorTypeList[i] == SensorTypes::SensorTrignoImu)
+                    {
+                        ActiveSensorChannels.Add(i + 1);
+                    }
+                }
+
+                // Config sensors, not finished to be added
+                FString Command = TEXT("UPSAMPLE ON");
+                //FString Response = SendCommand(Command);
+                FString Response;
+                SendCommand(Command, [&Response](FString OutResponse)
+                    {
+                        Response = OutResponse;
+                    });
+
+                //Response = SendCommand(COMMAND_START);
+                Response;
+                SendCommand(COMMAND_START, [&Response](FString OutResponse)
+                    {
+                        Response = OutResponse;
+                    });
+
+            }
+
+            // Game thread
+            Async(EAsyncExecution::TaskGraphMainThread, [this]()
+                {
+                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Sensor Configured!"));
+                });
         });
-
-        
-
-        //SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypeDict[Response]);
-        SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypes::SensorTrignoImu);
-    }
-
-    // Record the active sensor channel number
-    for (int i = 0; i < 16; i++)
-    {
-        if (SensorTypeList[i] == SensorTypes::SensorTrignoImu)
-        {
-            ActiveSensorChannels.Add(i + 1);
-        }
-    }
-
-    // Config sensors, not finished to be added
-    FString Command = TEXT("UPSAMPLE ON");
-    //FString Response = SendCommand(Command);
-    FString Response;
-    SendCommand(Command, [&Response](FString OutResponse)
-    {
-        Response = OutResponse;
-    });
-
-    //Response = SendCommand(COMMAND_START);
-    Response;
-    SendCommand(COMMAND_START, [&Response](FString OutResponse)
-    {
-        Response = OutResponse;
-    });
 
 
     return bConnected;
@@ -114,20 +127,31 @@ void UDelsysTrignoEMG::Close()
     }
 
     // Send QUIT command to server
-    //SendCommand(COMMAND_QUIT);
-    FString Response;
-    SendCommand(COMMAND_QUIT, [&Response](FString OutResponse)
-    {
-        Response = OutResponse;
-    });
-    bConnected = false;
-    CommandSocket->Close();
-    UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Disconnect with Delsys Trigno Control Utility!"));
+    // Use async task to avoid block the main game thread
+    Async(EAsyncExecution::Thread, [this]()
+        {
+            //SendCommand(COMMAND_QUIT);
+            FString Response;
+            SendCommand(COMMAND_QUIT, [&Response](FString OutResponse)
+                {
+                    Response = OutResponse;
+                });
+            bConnected = false;
+            CommandSocket->Close();
+            UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Disconnect with Delsys Trigno Control Utility!"));
+
+            // Game thread
+            Async(EAsyncExecution::TaskGraphMainThread, [this]()
+                {
+                   
+                });
+        });
 }
 
 void UDelsysTrignoEMG::StartAcquisition()
 {
     if (!bConnected) return;
+    UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("No connection to Delsys Trigno Control Utility found!"));
 
     // Get socket subsystem
     ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
@@ -152,27 +176,38 @@ void UDelsysTrignoEMG::StartAcquisition()
 
     // Start worker thread that acquire the data
     bAcquiring = true;
-    TrignoWorkerThreadInstance = MakeUnique<FTrignoWorkerThread>(this);
+    TrignoAcquisitionThreadInstance = MakeUnique<FTrignoAcquisitionThread>(this);
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG acquisition started!"));
 
     // Send start command to server to let it start streaming data
-    //FString Response = SendCommand(COMMAND_START);
-    FString Response;
-    SendCommand(COMMAND_START, [&Response](FString OutResponse)
+    // Use async task to avoid blocking the game thread
+    Async(EAsyncExecution::Thread, [this]()
     {
-        Response = OutResponse;
+        //FString Response = SendCommand(COMMAND_START);
+        FString Response;
+        SendCommand(COMMAND_START, [&Response](FString OutResponse)
+            {
+                Response = OutResponse;
+            });
+
+
+        if (Response.StartsWith("OK"))
+        {
+            UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server responds OK to start acquisition!"));
+        }
+        else
+        {
+            bAcquiring = false;
+            UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server refuses to start acquisition!"));
+        }
+
+        // Game thread
+        Async(EAsyncExecution::TaskGraphMainThread, [this]()
+            {
+
+            });
     });
 
-
-    if (Response.StartsWith("OK"))
-    {
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server responds OK to start acquisition!"));
-    }
-    else
-    {
-        bAcquiring = false;
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server refuses to start acquisition!"));
-    }
 }
 
 void UDelsysTrignoEMG::StopAcquisition()
@@ -183,7 +218,7 @@ void UDelsysTrignoEMG::StopAcquisition()
     //Send stop command to server
 
     bAcquiring = false;
-    TrignoWorkerThreadInstance->Stop();
+    TrignoAcquisitionThreadInstance->Stop();
 
     UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition stopped!"));
 }
