@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "UObject/NoExportTypes.h"
 #include "DelsysTrignoEMGModule.h"
+#include "TextFileManager.h"
 #include "DelsysTrignoEMG.generated.h"
 
 /**
@@ -78,6 +79,12 @@ private:
     // Active sensor channels
     TArray<int32> ActiveSensorChannels;
 
+    // Temporary EMG data buffer
+    TArray<float> TempEMGDataList;
+
+    // Temporary IMU data buffer
+    TArray<float> TempIMUDataList;
+
     // TCP Sockets
     TSharedPtr<FSocket> CommandSocket;
     TSharedPtr<FSocket> EMGDataSocket;
@@ -105,6 +112,8 @@ private:
     // Saving File
     FString EMGFileName;
     FString IMUFileName;
+    FTextFileManager* EMGFileManager;
+    FTextFileManager* IMUFileManager;
 
     // Sensor data acquisition worker thread
     class FTrignoAcquisitionThread : public FRunnable

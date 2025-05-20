@@ -9,6 +9,7 @@
 UDelsysTrignoEMG::UDelsysTrignoEMG()
 {
     SensorTypeList.Reserve(16);
+    TempEMGDataList.Reserve(16);
     SensorTypeDict.Add("A", SensorTypes::SensorTrigno);
     SensorTypeDict.Add("D", SensorTypes::SensorTrigno);
     SensorTypeDict.Add("L", SensorTypes::SensorTrignoImu);
@@ -75,15 +76,13 @@ bool UDelsysTrignoEMG::Connect()
                 {
                     if (SensorTypeList[i] == SensorTypes::SensorTrignoImu)
                     {
-                        ActiveSensorChannels.Add(i + 1);
+                        ActiveSensorChannels.Add(i);
                     }
                 }
 
                 // Config sensors, not finished to be added
                 Command = TEXT("UPSAMPLE ON");
                 Response = SendCommand(Command);
-
-                Response = SendCommand(COMMAND_START);
 
             }
 
@@ -146,11 +145,11 @@ void UDelsysTrignoEMG::StartAcquisition()
     IMUAddr->SetIp(IMUIP.Value);
     IMUAddr->SetPort(IMU_DATA_PORT);
 
-
     // Start worker thread that acquire the data
     bAcquiring = true;
     TrignoAcquisitionThreadInstance = MakeUnique<FTrignoAcquisitionThread>(this);
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG acquisition started!"));
+    
 
     // Send start command to server to let it start streaming data
     // Use async task to avoid blocking the game thread
@@ -158,7 +157,6 @@ void UDelsysTrignoEMG::StartAcquisition()
     {
         //FString Response = SendCommand(COMMAND_START);
         FString Response = SendCommand(COMMAND_START);
-
 
         if (Response.StartsWith("OK"))
         {
@@ -169,6 +167,8 @@ void UDelsysTrignoEMG::StartAcquisition()
             bAcquiring = false;
             UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server refuses to start acquisition!"));
         }
+
+       
 
         // Game thread
         Async(EAsyncExecution::TaskGraphMainThread, [this]()
@@ -185,26 +185,84 @@ void UDelsysTrignoEMG::StopAcquisition()
 
     // Add socket related stuff
     //Send stop command to server
+    Async(EAsyncExecution::Thread, [this]()
+        {
+            FString Response = SendCommand(COMMAND_STOP);
+
+            if (Response.StartsWith("OK"))
+            {
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server responds OK to stop acquisition!"));
+            }
+            else
+            {
+                bAcquiring = false;
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server refuses to stop acquisition!"));
+            }
+            // Game thread
+            Async(EAsyncExecution::TaskGraphMainThread, [this]()
+                {
+
+                });
+        });
 
     bAcquiring = false;
     TrignoAcquisitionThreadInstance->Stop();
 
-    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition stopped!"));
+    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition stop!"));
 }
 
 void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
 {
+    bRecording = true;
+    EMGFileManager = new FTextFileManager(FilePath);
 
-    
+    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG data recording start!"));
+    UE_LOG(LogTemp, Log, TEXT("EMG data saved to: %s"), *FilePath);
 }
 
 void UDelsysTrignoEMG::StopRecording()
 {
-
+    bRecording = false;
+    EMGFileManager->Stop();
+    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG data recording stop!"));
 }
 
 void UDelsysTrignoEMG::AcquireData()
 {
+    // Acquire EMG data
+    for (int i = 0; i < 16; i++)
+    {
+        uint8 TempBuffer[4]; // buffer for response
+        int32 BytesRead = 0;
+        EMGDataSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead);
+        if (BytesRead == 4) // 1 float = 4 bytes
+        {
+            float EmgValue;
+            FMemory::Memcpy(&EmgValue, TempBuffer, sizeof(float)); // Convert the 4byte data to a float
+            TempEMGDataList[i] = EmgValue;
+        }
+    }
+
+    // Acquire IMU data
+
+
+    // Recording
+    if (bRecording)
+    {
+        // Save the active EMG channel data
+        for (int i = 0; i < ActiveSensorChannels.Num(); i++)
+        {
+            FString DataString = FString::Printf(TEXT("%.2f"), TempEMGDataList[ActiveSensorChannels[i]]);
+            if (i < ActiveSensorChannels.Num() - 2 )
+            {
+                DataString.Append(","); // Comma for csv format, but not for the last value
+            }
+            
+            EMGFileManager->NewContent(DataString);
+        }
+        EMGFileManager->NewContent(LINE_TERMINATOR);
+        
+    }
 }
 
 TArray<float> UDelsysTrignoEMG::GetRawEMGData() const
@@ -226,9 +284,9 @@ FString UDelsysTrignoEMG::SendCommand(FString Command)
             CommandString.Append(LINE_TERMINATOR);
             CommandString.Append(LINE_TERMINATOR);// require two line terminator for a valid command
 
-            TCHAR* CommandChar = CommandString.GetCharArray().GetData();
+            TCHAR* CommandChar = CommandString.GetCharArray().GetData(); //Get FString char array
 
-            FTCHARToUTF8 Converter(CommandChar);
+            FTCHARToUTF8 Converter(CommandChar); //Convert char to UTF8 code
 
             // Send the command
             int32 BytesSent = 0;
