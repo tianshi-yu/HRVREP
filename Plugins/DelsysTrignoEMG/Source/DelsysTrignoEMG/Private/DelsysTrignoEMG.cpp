@@ -56,17 +56,15 @@ bool UDelsysTrignoEMG::Connect()
         {
             if (bConnected)
             {
+                FString Command = LINE_TERMINATOR;
+                FString Response = SendCommand(Command);
+
                 // Build a list of connected sensor types
                 for (int i = 1; i <= 16; i++)
                 {
-                    FString Command = FString::Printf(TEXT("SENSOR %d %s"), i, *COMMAND_SENSOR_TYPE);
-                    FString Response;
-                    SendCommand(Command, [&Response](FString OutResponse)
-                        {
-                            Response = OutResponse;
-                        });
-
-
+                    Command = FString::Printf(TEXT("SENSOR %d %s"), i, *COMMAND_SENSOR_TYPE);
+                    Response;
+                    Response = SendCommand(Command);
 
                     //SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypeDict[Response]);
                     SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypes::SensorTrignoImu);
@@ -82,20 +80,10 @@ bool UDelsysTrignoEMG::Connect()
                 }
 
                 // Config sensors, not finished to be added
-                FString Command = TEXT("UPSAMPLE ON");
-                //FString Response = SendCommand(Command);
-                FString Response;
-                SendCommand(Command, [&Response](FString OutResponse)
-                    {
-                        Response = OutResponse;
-                    });
+                Command = TEXT("UPSAMPLE ON");
+                Response = SendCommand(Command);
 
-                //Response = SendCommand(COMMAND_START);
-                Response;
-                SendCommand(COMMAND_START, [&Response](FString OutResponse)
-                    {
-                        Response = OutResponse;
-                    });
+                Response = SendCommand(COMMAND_START);
 
             }
 
@@ -126,26 +114,11 @@ void UDelsysTrignoEMG::Close()
         return;
     }
 
-    // Send QUIT command to server
-    // Use async task to avoid block the main game thread
-    Async(EAsyncExecution::Thread, [this]()
-        {
-            //SendCommand(COMMAND_QUIT);
-            FString Response;
-            SendCommand(COMMAND_QUIT, [&Response](FString OutResponse)
-                {
-                    Response = OutResponse;
-                });
-            bConnected = false;
-            CommandSocket->Close();
-            UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Disconnect with Delsys Trigno Control Utility!"));
+    // Send QUIT command to server, no need for thread as the gaming is ending
+    FString Response = SendCommand(COMMAND_QUIT);
 
-            // Game thread
-            Async(EAsyncExecution::TaskGraphMainThread, [this]()
-                {
-                   
-                });
-        });
+    bConnected = false;
+    UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Disconnect with Delsys Trigno Control Utility!"));
 }
 
 void UDelsysTrignoEMG::StartAcquisition()
@@ -184,11 +157,7 @@ void UDelsysTrignoEMG::StartAcquisition()
     Async(EAsyncExecution::Thread, [this]()
     {
         //FString Response = SendCommand(COMMAND_START);
-        FString Response;
-        SendCommand(COMMAND_START, [&Response](FString OutResponse)
-            {
-                Response = OutResponse;
-            });
+        FString Response = SendCommand(COMMAND_START);
 
 
         if (Response.StartsWith("OK"))
@@ -243,10 +212,9 @@ TArray<float> UDelsysTrignoEMG::GetRawEMGData() const
     return TArray<float>();
 }
 
-void UDelsysTrignoEMG::SendCommand(FString Command, TFunction<void(FString)> Callback)
+FString UDelsysTrignoEMG::SendCommand(FString Command)
 {
-    Async(EAsyncExecution::Thread, [this, Command, Callback]()
-    {
+    
         FString Response = "";
 
         if (bConnected)
@@ -255,38 +223,81 @@ void UDelsysTrignoEMG::SendCommand(FString Command, TFunction<void(FString)> Cal
 
             // Convert the command to a byte array 
             FString CommandString = Command;
+            CommandString.Append(LINE_TERMINATOR);
+            CommandString.Append(LINE_TERMINATOR);// require two line terminator for a valid command
+
             TCHAR* CommandChar = CommandString.GetCharArray().GetData();
 
             FTCHARToUTF8 Converter(CommandChar);
-            //CommandBytes.Append((const uint8*)Converter.Get(), Converter.Length(),0);
 
             // Send the command
             int32 BytesSent = 0;
-            bool bSent = CommandSocket->Send((uint8*)Converter.Get(), Converter.Length(), BytesSent);
+            bool bSent = false;
+            while (true)
+            {
+                if (CommandSocket->Send((uint8*)Converter.Get(), Converter.Length(), BytesSent))
+                {
+                    if (BytesSent == Converter.Length())
+                    {
+                        bSent = true;
+                        break;
+                    }
+                }
+                else
+                {
+                    break; // error in sending
+                }
+            }
+
+            
+            // Receive the reply
             if (bSent)
             {
-                //bool bHasReply = CommandSocket->Wait(ESocketWaitConditions::WaitForRead, FTimespan::FromSeconds(3));
-                //if (bHasReply)
-                //{
-                    // Wait for data coming
-                    //uint32 PendingDataSize = 0;
-                    //if (CommandSocket->HasPendingData(PendingDataSize))
-
-                // Read the response (this assumes you can handle socket reading correctly)
+                // Read the response 
+                bool bReceived = false;
                 TArray<uint8> ResponseBytes;
-                uint8 TempBuffer[1024]; // buffer for response
-
+                uint8 TempBuffer[1]; // buffer for response
                 int32 BytesRead = 0;
-                bool bReceived = CommandSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead);
-                if (bReceived && BytesRead > 0)
+                int8 NewlineCount = 0;
+                while (!bReceived)
                 {
-                    ResponseBytes.Append(TempBuffer, BytesRead);
+
+                    if (CommandSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead))
+                    {
+                        if (BytesRead <= 0)
+                        {
+                            break; // No data read
+                        }
+
+                        // Stop at newline
+                        if (TempBuffer[0] == '\n')
+                        {
+                            NewlineCount += 1;
+                            if (NewlineCount == 2)// two consecutive new line = end of the response
+                            {
+                                bReceived = true;
+                                break;
+                                
+                            }
+                                
+                        }
+
+                        // Append to data
+                        ResponseBytes.Add(TempBuffer[0]);
+                    }
+                    else
+                    {
+                        break; // Socket error or disconnected
+                    }
+                }
+
+                if (bReceived)
+                {
                     FString ResponseString = FString(UTF8_TO_TCHAR((const char*)ResponseBytes.GetData()));
                     Response = ResponseString;
+                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Get response from Trigno Control Utility!"));
+                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
                 }
-                UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Get response from Trigno Control Utility!"));
-                //}
-               
             }
             else
             {
@@ -297,12 +308,7 @@ void UDelsysTrignoEMG::SendCommand(FString Command, TFunction<void(FString)> Cal
         {
             UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Delsys Trigno Control Utility not connected!"));
         }
-        // Return on game thread
-        AsyncTask(ENamedThreads::GameThread, [Callback, Response]()
-        {
-        
-            UE_LOG(LogDelsysTrignoEMG, Log, TEXT("<-  %s"), *Response);
-            Callback(Response);
-        });
-    });
+
+        return Response;
+ 
 }
