@@ -218,14 +218,14 @@ void UDelsysTrignoEMG::StopAcquisition()
 {
     if (!bAcquiring) return;
 
+    TrignoAcquisitionThreadInstance->Stop();
+    bAcquiring = false;
+    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition thread stop!"));
 
     // Add socket related stuff
     //Send stop command to server
     Async(EAsyncExecution::Thread, [this]()
         {
-            TrignoAcquisitionThreadInstance->Stop();
-            bAcquiring = false;
-            UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition thread stop!"));
        
             FString Response = SendCommand(COMMAND_STOP);
             if (!Response.StartsWith("OK"))
@@ -247,6 +247,27 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
     if (!bAcquiring) return;
     
     EMGFileManager = new FTextFileManager(FilePath);
+
+    // Save EMG header
+    FString HeaderString;
+    for (int i = 0; i < ActiveSensorChannels.Num(); i++)
+    {
+        HeaderString.Append(FString::Printf(TEXT("EMG_Sensor%d"), i));
+
+        if (i != ActiveSensorChannels.Num()-1)
+        {
+            HeaderString.Append(","); // Comma for csv format, but not for the last value
+        }
+        else
+        {
+            HeaderString.Append(LINE_TERMINATOR);
+        }
+    }
+    EMGFileManager->NewContent(HeaderString);
+
+    // Save IMU header
+
+
     bRecording = true;
 
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording start!"));
