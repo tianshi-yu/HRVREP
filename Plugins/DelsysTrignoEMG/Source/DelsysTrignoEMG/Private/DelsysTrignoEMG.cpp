@@ -16,10 +16,13 @@ UDelsysTrignoEMG::UDelsysTrignoEMG()
     SensorTypeDict.Add("O", SensorTypes::SensorTrignoImu);
 }
 
+
 UDelsysTrignoEMG::~UDelsysTrignoEMG()
 {
-    Close();
+
 }
+
+
 
 bool UDelsysTrignoEMG::Connect()
 {
@@ -106,9 +109,9 @@ void UDelsysTrignoEMG::Close()
     }
 
     // If acquiring data return
-    if (bAcquiring)
+    if (bAcquiring || bRecording)
     {
-        UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Cannot close while acquiring data!"));
+        UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Cannot close while acquiring or recording data!"));
         return;
     }
 
@@ -213,26 +216,23 @@ void UDelsysTrignoEMG::StartAcquisition()
 
 void UDelsysTrignoEMG::StopAcquisition()
 {
-    if (!bConnected || !bAcquiring) return;
+    if (!bAcquiring) return;
 
-    TrignoAcquisitionThreadInstance->Stop();
-    bAcquiring = false;
-    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition thread stop!"));
 
     // Add socket related stuff
     //Send stop command to server
     Async(EAsyncExecution::Thread, [this]()
         {
+            TrignoAcquisitionThreadInstance->Stop();
+            bAcquiring = false;
+            UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition thread stop!"));
+       
             FString Response = SendCommand(COMMAND_STOP);
+            if (!Response.StartsWith("OK"))
+            {
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server refuses to stop acquisition, further actions may fail!"));
+            }
 
-            if (Response.StartsWith("OK"))
-            {
-                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server responds OK to stop acquisition!"));
-            }
-            else
-            {
-                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server refuses to stop acquisition!"));
-            }
             // Game thread
             Async(EAsyncExecution::TaskGraphMainThread, [this]()
                 {
@@ -257,6 +257,8 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
 
 void UDelsysTrignoEMG::StopRecording()
 {
+    if (!bRecording) return;
+
     bRecording = false;
     EMGFileManager->Stop();
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording stop!"));
@@ -369,9 +371,7 @@ FString UDelsysTrignoEMG::SendCommand(FString Command)
                             {
                                 bReceived = true;
                                 break;
-                                
-                            }
-                                
+                            }    
                         }
 
                         // Append to data

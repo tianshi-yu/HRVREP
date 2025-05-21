@@ -145,7 +145,11 @@ private:
         }
 
         void Stop() { bRunning = false; }
-        ~FTrignoAcquisitionThread() { if (Thread) { Thread ->WaitForCompletion(); } }
+        ~FTrignoAcquisitionThread() 
+        { 
+            Stop();  
+            if (Thread) { Thread->WaitForCompletion(); } 
+        }
     };
 
     TUniquePtr<FTrignoAcquisitionThread> TrignoAcquisitionThreadInstance;

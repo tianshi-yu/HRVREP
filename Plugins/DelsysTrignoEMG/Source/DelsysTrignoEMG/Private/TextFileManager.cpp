@@ -75,28 +75,3 @@ void FTextFileManager::Stop()
 	RunningFlag = false;
 }
 
-/*
-
-// Save a FString to text file through file stream, more efficient
-bool SaveStringTextStream(const FString& SaveDirectory, const FString& FileName, const FString& SaveText, bool AllowOverWrite)
-{
-	// Check if overwrite is allowed
-	if (!AllowOverWrite)
-		return false; // Currently only overwrite the file
-
-
-	// Set complete file path
-	FString CompleteFilePath = SaveDirectory + "\\" + FileName;
-
-	TUniquePtr<FArchive> FileWriter(IFileManager::Get().CreateFileWriter(*CompleteFilePath));
-
-	if (FileWriter)
-	{
-		// Convert FString to UTF-8 bytes
-		FTCHARToUTF8 UTF8String(SaveText);
-		FileWriter->Serialize((void*)UTF8String.Get(), UTF8String.Length());
-
-		FileWriter->Close();
-	}
-}
-*/
