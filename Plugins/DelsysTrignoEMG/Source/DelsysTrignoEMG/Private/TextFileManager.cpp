@@ -2,6 +2,7 @@
 
 
 #include "TextFileManager.h"
+#include "DelsysTrignoEMG.h"
 #include "Misc/FileHelper.h"
 #include "HAL/PlatformFilemanager.h"
 
@@ -16,6 +17,8 @@ FTextFileManager::FTextFileManager(const FString& InFilePath) : FilePath(InFileP
 	Thread = TUniquePtr<FRunnableThread>(FRunnableThread::Create(this, *FString::Printf(TEXT("FileWriterThread_%s"), *FPaths::GetBaseFilename(FilePath)), 0, TPri_Normal));
 
 	FileWriter = TUniquePtr<FArchive>(IFileManager::Get().CreateFileWriter(*FilePath));
+
+	UE_LOG(LogDelsysTrignoEMG, Display, TEXT("Delsys saving text file created at: %s"), *FilePath);
 }
 
 FTextFileManager::~FTextFileManager()

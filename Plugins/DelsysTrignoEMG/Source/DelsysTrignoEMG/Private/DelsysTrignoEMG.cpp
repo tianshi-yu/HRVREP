@@ -9,7 +9,6 @@
 UDelsysTrignoEMG::UDelsysTrignoEMG()
 {
     SensorTypeList.Reserve(16);
-    TempEMGDataList.Reserve(16);
     SensorTypeDict.Add("A", SensorTypes::SensorTrigno);
     SensorTypeDict.Add("D", SensorTypes::SensorTrigno);
     SensorTypeDict.Add("L", SensorTypes::SensorTrignoImu);
@@ -67,7 +66,6 @@ bool UDelsysTrignoEMG::Connect()
                     Response;
                     Response = SendCommand(Command);
 
-                    //SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypeDict[Response]);
                     SensorTypeList.Add(Response.Contains("INVALID") ? SensorTypes::NoSensor : SensorTypes::SensorTrignoImu);
                 }
 
@@ -77,23 +75,24 @@ bool UDelsysTrignoEMG::Connect()
                     if (SensorTypeList[i] == SensorTypes::SensorTrignoImu)
                     {
                         ActiveSensorChannels.Add(i);
+                        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensor %d is active!"), i+1);
                     }
                 }
 
                 // Config sensors, not finished to be added
-                Command = TEXT("UPSAMPLE ON");
+                Command = TEXT("UPSAMPLE OFF");
                 Response = SendCommand(Command);
-
+                bInitialized = true;
             }
 
             // Game thread
             Async(EAsyncExecution::TaskGraphMainThread, [this]()
                 {
-                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Sensor Configured!"));
+                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensors are initialized!"));
                 });
         });
 
-
+    
     return bConnected;
 }
 
@@ -113,24 +112,36 @@ void UDelsysTrignoEMG::Close()
         return;
     }
 
-    // Send QUIT command to server, no need for thread as the gaming is ending
-    FString Response = SendCommand(COMMAND_QUIT);
+    // Send QUIT command to server
+    Async(EAsyncExecution::Thread, [this]()
+        {
+            FString Response = SendCommand(COMMAND_QUIT);
 
-    bConnected = false;
-    UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Disconnect with Delsys Trigno Control Utility!"));
+            bConnected = false;
+            UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Disconnect with Delsys Trigno Control Utility!"));
+        });
+
 }
 
 void UDelsysTrignoEMG::StartAcquisition()
 {
-    if (!bConnected) return;
-    UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("No connection to Delsys Trigno Control Utility found!"));
+    if (!bConnected)
+    {
+        return;
+        UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("No connection to Delsys Trigno Control Utility found!"));
+    }
+    
 
     // Get socket subsystem
     ISocketSubsystem* SocketSubsystem = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM);
 
     // Create socket for EMG and IMU
     EMGDataSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("DelsysEMDDataSocket"), false));
-    IMUDataSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("DelsysEMDDataSocket"), false));
+    EMGDataSocket->SetNonBlocking(false); // Blocking for reques-reply mode
+    EMGDataSocket->SetReuseAddr(true);
+    IMUDataSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("DelsysIMUDataSocket"), false));
+    IMUDataSocket->SetNonBlocking(false); // Blocking for reques-reply mode
+    IMUDataSocket->SetReuseAddr(true);
 
     // Set IP and port
     FIPv4Address EMGIP;
@@ -145,21 +156,44 @@ void UDelsysTrignoEMG::StartAcquisition()
     IMUAddr->SetIp(IMUIP.Value);
     IMUAddr->SetPort(IMU_DATA_PORT);
 
-    // Start worker thread that acquire the data
-    bAcquiring = true;
-    TrignoAcquisitionThreadInstance = MakeUnique<FTrignoAcquisitionThread>(this);
-    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG acquisition started!"));
+    // Connect socket
+    if (EMGDataSocket->Connect(*EMGAddr))
+    {
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to EMG data port!"));
+    }
+    else
+    {
+        UE_LOG(LogDelsysTrignoEMG, Error, TEXT("Failed to connect to EMG data port!"));
+    }
+
+    if (IMUDataSocket->Connect(*IMUAddr))
+    {
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to IMU data port!"));
+    }
+    else
+    {
+        UE_LOG(LogDelsysTrignoEMG, Error, TEXT("Failed to connect to IMU data port!"));
+    }
     
 
     // Send start command to server to let it start streaming data
     // Use async task to avoid blocking the game thread
     Async(EAsyncExecution::Thread, [this]()
     {
-        //FString Response = SendCommand(COMMAND_START);
+        while (!bInitialized)
+        {
+            FPlatformProcess::Sleep(2.0f);// wait for a while
+        }
+
+        // Start worker thread that acquire the data
+        TrignoAcquisitionThreadInstance = MakeUnique<FTrignoAcquisitionThread>(this);
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG acquisition thread start!"));
+
         FString Response = SendCommand(COMMAND_START);
 
         if (Response.StartsWith("OK"))
         {
+            bAcquiring = true;
             UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server responds OK to start acquisition!"));
         }
         else
@@ -167,8 +201,6 @@ void UDelsysTrignoEMG::StartAcquisition()
             bAcquiring = false;
             UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server refuses to start acquisition!"));
         }
-
-       
 
         // Game thread
         Async(EAsyncExecution::TaskGraphMainThread, [this]()
@@ -183,6 +215,10 @@ void UDelsysTrignoEMG::StopAcquisition()
 {
     if (!bConnected || !bAcquiring) return;
 
+    TrignoAcquisitionThreadInstance->Stop();
+    bAcquiring = false;
+    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition thread stop!"));
+
     // Add socket related stuff
     //Send stop command to server
     Async(EAsyncExecution::Thread, [this]()
@@ -195,74 +231,72 @@ void UDelsysTrignoEMG::StopAcquisition()
             }
             else
             {
-                bAcquiring = false;
                 UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server refuses to stop acquisition!"));
             }
             // Game thread
             Async(EAsyncExecution::TaskGraphMainThread, [this]()
                 {
-
+                    
                 });
         });
 
-    bAcquiring = false;
-    TrignoAcquisitionThreadInstance->Stop();
-
-    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition stop!"));
 }
 
 void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
 {
-    bRecording = true;
+    if (!bAcquiring) return;
+    
     EMGFileManager = new FTextFileManager(FilePath);
+    bRecording = true;
 
-    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG data recording start!"));
-    UE_LOG(LogTemp, Log, TEXT("EMG data saved to: %s"), *FilePath);
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording start!"));
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG data will be saved to: %s"), *FilePath);
+   
+  
 }
 
 void UDelsysTrignoEMG::StopRecording()
 {
     bRecording = false;
     EMGFileManager->Stop();
-    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG data recording stop!"));
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording stop!"));
 }
 
 void UDelsysTrignoEMG::AcquireData()
 {
     // Acquire EMG data
+    TempEMGDataList.Init(0.0f, 16);
     for (int i = 0; i < 16; i++)
     {
         uint8 TempBuffer[4]; // buffer for response
         int32 BytesRead = 0;
-        EMGDataSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead);
-        if (BytesRead == 4) // 1 float = 4 bytes
-        {
-            float EmgValue;
-            FMemory::Memcpy(&EmgValue, TempBuffer, sizeof(float)); // Convert the 4byte data to a float
-            TempEMGDataList[i] = EmgValue;
-        }
-    }
-
-    // Acquire IMU data
-
-
-    // Recording
-    if (bRecording)
-    {
-        // Save the active EMG channel data
-        for (int i = 0; i < ActiveSensorChannels.Num(); i++)
-        {
-            FString DataString = FString::Printf(TEXT("%.2f"), TempEMGDataList[ActiveSensorChannels[i]]);
-            if (i < ActiveSensorChannels.Num() - 2 )
-            {
-                DataString.Append(","); // Comma for csv format, but not for the last value
-            }
-            
-            EMGFileManager->NewContent(DataString);
-        }
-        EMGFileManager->NewContent(LINE_TERMINATOR);
         
+        if (EMGDataSocket->Recv(TempBuffer, sizeof(TempBuffer), BytesRead)  && BytesRead)
+        {
+            float EMGValue;
+            FMemory::Memcpy(&EMGValue, TempBuffer, 4); // Convert the 4 bytes data to a float
+            TempEMGDataList[i] = EMGValue;
+            
+            if (bRecording && ActiveSensorChannels.Contains(i))
+            {
+                FString DataString = FString::Printf(TEXT("%.7e"), TempEMGDataList[i]); // 7 digits float precision
+
+                if (i != ActiveSensorChannels.Last())
+                {
+                    DataString.Append(","); // Comma for csv format, but not for the last value
+                }
+                else
+                {
+                    DataString.Append(LINE_TERMINATOR);
+                }
+                EMGFileManager->NewContent(DataString);
+
+            }
+        }
+
     }
+
+
 }
 
 TArray<float> UDelsysTrignoEMG::GetRawEMGData() const

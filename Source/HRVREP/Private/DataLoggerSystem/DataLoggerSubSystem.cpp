@@ -40,7 +40,6 @@ bool UDataLoggerSubSystem::AddDataLogger(const FString& LoggerName, const FStrin
 		NewDataLogger->Init(DirectoryPath, LoggerName + ".csv");
 	}
 
-	
 	DataLoggerMap.Add(LoggerName, NewDataLogger);
 	UE_LOG(LogTemp, Display, TEXT("Subsystem Log: Added Logger: %s"), *LoggerName);
 	return true;

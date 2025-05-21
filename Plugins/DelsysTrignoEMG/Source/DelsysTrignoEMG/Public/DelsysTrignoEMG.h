@@ -106,8 +106,10 @@ private:
 
     // Status Flags
     bool bConnected = false;
+    bool bInitialized = false;
     bool bAcquiring = false;
     bool bRecording = false;
+    
 
     // Saving File
     FString EMGFileName;
@@ -137,11 +139,6 @@ private:
                 if (Owner && Owner->bAcquiring)
                 {
                     Owner->AcquireData();
-                }
-
-                if (Owner && Owner->bAcquiring)
-                {
-                    // Send data to data record routine
                 }
             }
             return 0;

@@ -16,6 +16,8 @@ FTextFileManager::FTextFileManager(const FString& InFilePath) : FilePath(InFileP
 	Thread = TUniquePtr<FRunnableThread>(FRunnableThread::Create(this, *FString::Printf(TEXT("FileWriterThread_%s"), *FPaths::GetBaseFilename(FilePath)), 0, TPri_Normal));
 
 	FileWriter = TUniquePtr<FArchive>(IFileManager::Get().CreateFileWriter(*FilePath));
+
+	UE_LOG(LogTemp, Display, TEXT("Text file created at: %s"), *FilePath);
 }
 
 FTextFileManager::~FTextFileManager()
