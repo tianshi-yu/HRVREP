@@ -44,7 +44,7 @@ bool UDelsysTrignoEMG::Connect()
     // Connect to server
     if (CommandSocket->Connect(*Addr))
     {
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to Delsys Trigno Control Utility server!"));
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to Delsys Trigno Control Utility server."));
         bConnected = true;
     }
     else
@@ -78,7 +78,7 @@ bool UDelsysTrignoEMG::Connect()
                     if (SensorTypeList[i] == SensorTypes::SensorTrignoImu)
                     {
                         ActiveSensorChannels.Add(i);
-                        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensor %d is active!"), i+1);
+                        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensor %d is active."), i+1);
                     }
                 }
 
@@ -91,7 +91,7 @@ bool UDelsysTrignoEMG::Connect()
             // Game thread
             Async(EAsyncExecution::TaskGraphMainThread, [this]()
                 {
-                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensors are initialized!"));
+                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensors are initialized."));
                 });
         });
 
@@ -121,7 +121,12 @@ void UDelsysTrignoEMG::Close()
             FString Response = SendCommand(COMMAND_QUIT);
 
             bConnected = false;
-            UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Disconnect with Delsys Trigno Control Utility!"));
+            UE_LOG(LogDelsysTrignoEMG, Warning, TEXT("Disconnect with Delsys Trigno Control Utility."));
+            // Game thread
+            Async(EAsyncExecution::TaskGraphMainThread, [this]()
+                {
+
+                });
         });
 
 }
@@ -162,7 +167,7 @@ void UDelsysTrignoEMG::StartAcquisition()
     // Connect socket
     if (EMGDataSocket->Connect(*EMGAddr))
     {
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to EMG data port!"));
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to EMG data port."));
     }
     else
     {
@@ -171,7 +176,7 @@ void UDelsysTrignoEMG::StartAcquisition()
 
     if (IMUDataSocket->Connect(*IMUAddr))
     {
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to IMU data port!"));
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to IMU data port."));
     }
     else
     {
@@ -185,19 +190,19 @@ void UDelsysTrignoEMG::StartAcquisition()
     {
         while (!bInitialized)
         {
-            FPlatformProcess::Sleep(2.0f);// wait for a while
+            FPlatformProcess::Sleep(2.0f);// wait for a while for initialisation
         }
 
         // Start worker thread that acquire the data
         TrignoAcquisitionThreadInstance = MakeUnique<FTrignoAcquisitionThread>(this);
-        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG acquisition thread start!"));
+        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG acquisition thread starts."));
 
         FString Response = SendCommand(COMMAND_START);
 
         if (Response.StartsWith("OK"))
         {
             bAcquiring = true;
-            UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server responds OK to start acquisition!"));
+            UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server responds OK to start acquisition."));
         }
         else
         {
@@ -218,9 +223,10 @@ void UDelsysTrignoEMG::StopAcquisition()
 {
     if (!bAcquiring) return;
 
-    TrignoAcquisitionThreadInstance->Stop();
     bAcquiring = false;
-    UE_LOG(LogTemp, Log, TEXT("Delsys Trigno EMG acquisition thread stop!"));
+    TrignoAcquisitionThreadInstance->Stop();
+    
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG acquisition thread stop!"));
 
     // Add socket related stuff
     //Send stop command to server
@@ -228,7 +234,7 @@ void UDelsysTrignoEMG::StopAcquisition()
         {
        
             FString Response = SendCommand(COMMAND_STOP);
-            if (!Response.StartsWith("OK"))
+            if (!Response.StartsWith("O"))
             {
                 UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Server refuses to stop acquisition, further actions may fail!"));
             }
@@ -252,7 +258,8 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
     FString HeaderString;
     for (int i = 0; i < ActiveSensorChannels.Num(); i++)
     {
-        HeaderString.Append(FString::Printf(TEXT("EMG_Sensor%d"), i));
+        HeaderString.Append(FString::Printf(TEXT("EMG_Sensor%d"), ActiveSensorChannels[i]+1)); 
+        // ActiveSensorChannel records the array index so +1
 
         if (i != ActiveSensorChannels.Num()-1)
         {
@@ -270,7 +277,7 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
 
     bRecording = true;
 
-    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording start!"));
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording start."));
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG data will be saved to: %s"), *FilePath);
    
   
@@ -282,7 +289,7 @@ void UDelsysTrignoEMG::StopRecording()
 
     bRecording = false;
     EMGFileManager->Stop();
-    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording stop!"));
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording stop."));
 }
 
 void UDelsysTrignoEMG::AcquireData()
@@ -360,7 +367,7 @@ FString UDelsysTrignoEMG::SendCommand(FString Command)
                 }
                 else
                 {
-                    break; // error in sending
+                    break; // Error in sending
                 }
             }
 
@@ -371,7 +378,7 @@ FString UDelsysTrignoEMG::SendCommand(FString Command)
                 // Read the response 
                 bool bReceived = false;
                 TArray<uint8> ResponseBytes;
-                uint8 TempBuffer[1]; // buffer for response
+                uint8 TempBuffer[1]; // Buffer for response
                 int32 BytesRead = 0;
                 int8 NewlineCount = 0;
                 while (!bReceived)
@@ -388,7 +395,7 @@ FString UDelsysTrignoEMG::SendCommand(FString Command)
                         if (TempBuffer[0] == '\n')
                         {
                             NewlineCount += 1;
-                            if (NewlineCount == 2)// two consecutive new line = end of the response
+                            if (NewlineCount == 2)// Two consecutive new line = end of the response
                             {
                                 bReceived = true;
                                 break;

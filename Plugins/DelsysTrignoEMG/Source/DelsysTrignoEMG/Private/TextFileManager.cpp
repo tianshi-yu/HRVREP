@@ -18,20 +18,12 @@ FTextFileManager::FTextFileManager(const FString& InFilePath) : FilePath(InFileP
 
 	FileWriter = TUniquePtr<FArchive>(IFileManager::Get().CreateFileWriter(*FilePath));
 
-	UE_LOG(LogDelsysTrignoEMG, Display, TEXT("Delsys saving text file created at: %s"), *FilePath);
+	UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys saving text file created at: %s."), *FilePath);
 }
 
 FTextFileManager::~FTextFileManager()
 {
-	// Stop the thread first
-	Stop();
-
-	//
-	if (Thread)
-	{
-		Thread->WaitForCompletion();
-	}
-
+	UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys saving text file created at: %s is closed." ), *FilePath);
 }
 
 void FTextFileManager::NewContent(const FString& InContent)
@@ -64,7 +56,7 @@ uint32 FTextFileManager::Run()
 			}
 		}
 	}
-
+	FPlatformProcess::Sleep(0.01f); // Sleep a while 
 	FileWriter->Close(); // In the end close the file writer
 
 	return 0;  // Task is complete
@@ -73,5 +65,10 @@ uint32 FTextFileManager::Run()
 void FTextFileManager::Stop()
 {
 	RunningFlag = false;
+	
+	if (Thread)
+	{
+		Thread->WaitForCompletion();
+	}
 }
 

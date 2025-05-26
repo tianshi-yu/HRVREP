@@ -121,9 +121,9 @@ private:
     class FTrignoAcquisitionThread : public FRunnable
     {
     private:
-        TSharedPtr<UDelsysTrignoEMG> Owner;
+        TWeakObjectPtr<UDelsysTrignoEMG> Owner; // Cannot use shared ptr as it will try to destroy the owner object causing problem
         TUniquePtr<FRunnableThread> Thread;
-        bool bRunning;
+        bool bRunning = true;
 
     public:
         FTrignoAcquisitionThread(UDelsysTrignoEMG* InOwner) : Owner(InOwner), bRunning(true)
@@ -133,22 +133,27 @@ private:
 
         virtual uint32 Run() override
         {
-            bRunning = true;
             while (bRunning)
             {
-                if (Owner && Owner->bAcquiring)
+                if (Owner.IsValid() && Owner->bAcquiring)
                 {
                     Owner->AcquireData();
                 }
             }
+            FPlatformProcess::Sleep(0.01f); // Sleep a while
             return 0;
+
         }
 
-        void Stop() { bRunning = false; }
-        ~FTrignoAcquisitionThread() 
+        void Stop() override 
         { 
-            Stop();  
-            if (Thread) { Thread->WaitForCompletion(); } 
+            bRunning = false;  
+            if (Thread) { Thread->WaitForCompletion(); }
+            UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Acquisition thread has been stopped and deleted!"));
+        }
+        ~FTrignoAcquisitionThread() override
+        { 
+            UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Acquisition thread stop has been initiated!"));
         }
     };
 

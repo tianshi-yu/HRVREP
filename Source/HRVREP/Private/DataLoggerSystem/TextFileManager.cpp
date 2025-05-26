@@ -17,20 +17,12 @@ FTextFileManager::FTextFileManager(const FString& InFilePath) : FilePath(InFileP
 
 	FileWriter = TUniquePtr<FArchive>(IFileManager::Get().CreateFileWriter(*FilePath));
 
-	UE_LOG(LogTemp, Display, TEXT("Text file created at: %s"), *FilePath);
+	UE_LOG(LogTemp, Log, TEXT("Text file created at: %s"), *FilePath);
 }
 
 FTextFileManager::~FTextFileManager()
 {
-	// Stop the thread first
-	Stop();
-
-	//
-	if (Thread)
-	{
-		Thread->WaitForCompletion();
-	}
-
+	UE_LOG(LogTemp, Log, TEXT("Text file created at: %s is closed."), *FilePath);
 }
 
 void FTextFileManager::NewContent(const FString& InContent)
@@ -63,7 +55,7 @@ uint32 FTextFileManager::Run()
 			}
 		}
 	}
-
+	FPlatformProcess::Sleep(0.01f);
 	FileWriter->Close(); // In the end close the file writer
 
 	return 0;  // Task is complete
@@ -72,30 +64,9 @@ uint32 FTextFileManager::Run()
 void FTextFileManager::Stop()
 {
 	RunningFlag = false;
-}
-
-/*
-
-// Save a FString to text file through file stream, more efficient
-bool SaveStringTextStream(const FString& SaveDirectory, const FString& FileName, const FString& SaveText, bool AllowOverWrite)
-{
-	// Check if overwrite is allowed
-	if (!AllowOverWrite)
-		return false; // Currently only overwrite the file
-
-
-	// Set complete file path
-	FString CompleteFilePath = SaveDirectory + "\\" + FileName;
-
-	TUniquePtr<FArchive> FileWriter(IFileManager::Get().CreateFileWriter(*CompleteFilePath));
-
-	if (FileWriter)
+	if (Thread)
 	{
-		// Convert FString to UTF-8 bytes
-		FTCHARToUTF8 UTF8String(SaveText);
-		FileWriter->Serialize((void*)UTF8String.Get(), UTF8String.Length());
-
-		FileWriter->Close();
+		Thread->WaitForCompletion();
 	}
 }
-*/
+
