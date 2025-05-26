@@ -2,6 +2,7 @@
 
 
 #include "SensorSystem/SensorSubSystem.h"
+#include "LogCategories.h"
 
 //
 // Initialise the sensor system
@@ -9,7 +10,7 @@
 void USensorSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	UE_LOG(LogTemp, Warning, TEXT("Subsysmtem Log: SensorSubSystem Initialized"));
+	UE_LOG(LogSensorSubSystem, Warning, TEXT("Subsysmtem Log: SensorSubSystem Initialized"));
 }
 
 //
@@ -17,7 +18,7 @@ void USensorSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 //
 void USensorSubSystem::Deinitialize()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Subsysmtem Log: SensorSubSystem Deinitialized"));
+	UE_LOG(LogSensorSubSystem, Warning, TEXT("Subsysmtem Log: SensorSubSystem Deinitialized"));
 	Super::Deinitialize();
 }
 
@@ -72,7 +73,7 @@ bool USensorSubSystem::UpdateAllReadings()
 {
 	if (SensorMap.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Subsysmtem Log: There is no sensor in the system!!!"));
+		UE_LOG(LogSensorSubSystem, Warning, TEXT("Subsysmtem Log: There is no sensor in the system!!!"));
 		return false;
 	}
 	else
@@ -92,7 +93,7 @@ FString USensorSubSystem::RetrieveAllVarNamesStr(const FString& Delimiter)
 {
 	if (SensorMap.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Subsysmtem Log: There is no sensor in the system!!!"));
+		UE_LOG(LogSensorSubSystem, Warning, TEXT("Subsysmtem Log: There is no sensor in the system!!!"));
 		return "";
 	}
 	else
@@ -115,7 +116,7 @@ FString USensorSubSystem::RetrieveAllVarValuesStr(const FString& Delimiter)
 {
 	if (SensorMap.IsEmpty())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Subsysmtem Log: There is no sensor in the system!!!"));
+		UE_LOG(LogSensorSubSystem, Warning, TEXT("Subsysmtem Log: There is no sensor in the system!!!"));
 		return "";
 	}
 	else

@@ -3,16 +3,18 @@
 
 #include "DataLoggerSystem/DataLoggerSubSystem.h"
 #include "Misc/Paths.h"
+#include "LogCategories.h"
+
 
 void UDataLoggerSubSystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: DataLoggerSubSystem Initialized"));
+	UE_LOG(LogDataLoggerSubSystem, Warning, TEXT("Subsystem Log: DataLoggerSubSystem Initialized"));
 }
 
 void UDataLoggerSubSystem::Deinitialize()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: DataLoggerSubSystem Deinitialized"));
+	UE_LOG(LogDataLoggerSubSystem, Warning, TEXT("Subsystem Log: DataLoggerSubSystem Deinitialized"));
 	Super::Deinitialize();
 }
 
@@ -24,7 +26,7 @@ bool UDataLoggerSubSystem::AddDataLogger(const FString& LoggerName, const FStrin
 	
 	if (this->DataLoggerMap.Contains(LoggerName)) // Check for duplicate name
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Subsystem Log: Data Logger name '%s' already exists!"), *LoggerName);
+		UE_LOG(LogDataLoggerSubSystem, Warning, TEXT("Subsystem Log: Data Logger name '%s' already exists!"), *LoggerName);
 		return false; // Decline addition
 	}
 	
@@ -41,7 +43,7 @@ bool UDataLoggerSubSystem::AddDataLogger(const FString& LoggerName, const FStrin
 	}
 
 	DataLoggerMap.Add(LoggerName, NewDataLogger);
-	UE_LOG(LogTemp, Display, TEXT("Subsystem Log: Added Logger: %s"), *LoggerName);
+	UE_LOG(LogDataLoggerSubSystem, Display, TEXT("Subsystem Log: Added Logger: %s"), *LoggerName);
 	return true;
 }
 
@@ -84,7 +86,7 @@ UDataLoggerManager* UDataLoggerSubSystem::FindDataLoggerByName(const FString& Lo
 {
 	UDataLoggerManager* Target = DataLoggerMap[LoggerName];
 	// Commented out the log, this function will be frequently called
-	//UE_LOG(LogTemp, Warning, TEXT("Find Data Logger with Name: %s"), *LoggerName);
+	//UE_LOG(LogDataLoggerSubSystem, Warning, TEXT("Find Data Logger with Name: %s"), *LoggerName);
 	return Target;
 };
 

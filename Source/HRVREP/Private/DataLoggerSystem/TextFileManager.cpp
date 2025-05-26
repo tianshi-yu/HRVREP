@@ -4,7 +4,7 @@
 #include "DataLoggerSystem/TextFileManager.h"
 #include "Misc/FileHelper.h"
 #include "HAL/PlatformFilemanager.h"
-
+#include "LogCategories.h"
 
 FTextFileManager::FTextFileManager() : FilePath(), Thread(nullptr), ContentQueue(), FileWriter(nullptr), RunningFlag(false)
 {
@@ -17,12 +17,12 @@ FTextFileManager::FTextFileManager(const FString& InFilePath) : FilePath(InFileP
 
 	FileWriter = TUniquePtr<FArchive>(IFileManager::Get().CreateFileWriter(*FilePath));
 
-	UE_LOG(LogTemp, Log, TEXT("Text file created at: %s"), *FilePath);
+	UE_LOG(LogDataLoggerSubSystem, Log, TEXT("Text file created at: %s"), *FilePath);
 }
 
 FTextFileManager::~FTextFileManager()
 {
-	UE_LOG(LogTemp, Log, TEXT("Text file created at: %s is closed."), *FilePath);
+	UE_LOG(LogDataLoggerSubSystem, Log, TEXT("Text file created at: %s is closed."), *FilePath);
 }
 
 void FTextFileManager::NewContent(const FString& InContent)

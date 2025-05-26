@@ -2,6 +2,7 @@
 
 
 #include "GameSystem/GenericExperimentGameMode.h"
+#include "LogCategories.h"
 
 //
 // Override parent
@@ -40,7 +41,7 @@ void AGenericExperimentGameMode::Tick(float DeltaSecond)
 			CheckTrainingComplete(TrainingComplete);
 			if (TrainingTaskFail)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Game Mode: Task Failed."));
+				UE_LOG(LogGenericGameMode, Warning, TEXT("Game Mode: Task Failed."));
 				InitTask();
 				break;
 			}
@@ -48,7 +49,7 @@ void AGenericExperimentGameMode::Tick(float DeltaSecond)
 			{
 				HandleTrainingComplete();
 				ExperimentState = EExperimentState::PerformingTask;
-				UE_LOG(LogTemp, Warning, TEXT("Game Mode: Training Complete. Start Task."));
+				UE_LOG(LogGenericGameMode, Warning, TEXT("Game Mode: Training Complete. Start Task."));
 				break;
 			}	
 			break;
@@ -61,31 +62,31 @@ void AGenericExperimentGameMode::Tick(float DeltaSecond)
 			CheckTaskComplete(TaskComplete);
 			if (TaskFail)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Game Mode: Task Failed."));
+				UE_LOG(LogGenericGameMode, Warning, TEXT("Game Mode: Task Failed."));
 				ExperimentState = EExperimentState::TaskFail;
 				break;
 			}
 			else if (TaskComplete)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Game Mode: Task Complete."));
+				UE_LOG(LogGenericGameMode, Warning, TEXT("Game Mode: Task Complete."));
 				HandleTaskComplete();
 				bool IterationComplete;
 				CheckIterationComplete(IterationComplete);
 				if (IterationComplete)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Game Mode: Iteration Complete."));
+					UE_LOG(LogGenericGameMode, Warning, TEXT("Game Mode: Iteration Complete."));
 					HandleIterationComplete();
 					bool SessionComplete;
 					CheckSessionComplete(SessionComplete);
 					if (SessionComplete)
 					{
-						UE_LOG(LogTemp, Warning, TEXT("Game Mode: Session Complete."));
+						UE_LOG(LogGenericGameMode, Warning, TEXT("Game Mode: Session Complete."));
 						HandleSessionComplete();
 						bool ExperimentComplete;
 						CheckExperimentComplete(ExperimentComplete);
 						if (ExperimentComplete)
 						{
-							UE_LOG(LogTemp, Warning, TEXT("Game Mode: Experiment Complete."));
+							UE_LOG(LogGenericGameMode, Warning, TEXT("Game Mode: Experiment Complete."));
 							ExperimentState = EExperimentState::EndExperiment;
 							EndPlay(EEndPlayReason::Quit);
 							break; // no need to go through iteration and session init

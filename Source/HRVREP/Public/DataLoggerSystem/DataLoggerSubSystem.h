@@ -7,9 +7,12 @@
 #include "DataLoggerSystem/DataLoggerManager.h"
 #include "DataLoggerSubSystem.generated.h"
 
+
+
 /**
  * Data logger subsystem, operating all data loggers to save data to local files.
  */
+
 UCLASS()
 class HRVREP_API UDataLoggerSubSystem : public UGameInstanceSubsystem
 {
