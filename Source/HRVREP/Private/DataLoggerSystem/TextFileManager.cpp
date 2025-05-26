@@ -55,7 +55,6 @@ uint32 FTextFileManager::Run()
 			}
 		}
 	}
-	FPlatformProcess::Sleep(0.01f);
 	FileWriter->Close(); // In the end close the file writer
 
 	return 0;  // Task is complete

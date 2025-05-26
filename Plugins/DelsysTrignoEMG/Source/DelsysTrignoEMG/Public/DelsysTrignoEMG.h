@@ -140,7 +140,6 @@ private:
                     Owner->AcquireData();
                 }
             }
-            FPlatformProcess::Sleep(0.01f); // Sleep a while
             return 0;
 
         }
