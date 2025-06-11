@@ -331,7 +331,8 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
 
     // Save IMU header
 
-
+    EMGTimeCount = 0.0f;
+    AUXTimeCount = 0.0f;
     bRecording = true;
 
     UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording start."));
@@ -359,12 +360,15 @@ void UDelsysTrignoEMG::AcquireData()
 
     // Time Stamp
     FDateTime Now = FDateTime::Now();
+    int32 Year = Now.GetYear();
+    int32 Month = Now.GetMonth();
+    int32 Day = Now.GetDay();
     int32 Hour = Now.GetHour();
     int32 Minute = Now.GetMinute();
     int32 Second = Now.GetSecond();
     int32 Millisecond = Now.GetMillisecond();
-    FString TimeString = FString::Printf(TEXT("%02d:%02d:%02d.%03d,"),
-        Hour, Minute, Second, Millisecond);
+    FString TimeString = FString::Printf(TEXT("%04d-%02d-%02d-%02d-%02d-%02d-%03d,"),
+        Year,Month, Day, Hour, Minute, Second, Millisecond);
 
     EMGDataString.Append(TimeString);
     EMGDataString.Append(FString::Printf(TEXT("%.5f,"), EMGTimeCount));
