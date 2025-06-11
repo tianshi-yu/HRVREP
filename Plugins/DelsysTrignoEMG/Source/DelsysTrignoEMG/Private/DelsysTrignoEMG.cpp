@@ -82,9 +82,39 @@ bool UDelsysTrignoEMG::Connect()
                     }
                 }
 
-                // Config sensors, not finished to be added
-                Command = TEXT("UPSAMPLE OFF");
+                // Config sensors
+                // Allow Upsampling
+                Command = TEXT("BACKWARDS COMPATIBILITY ON");
                 Response = SendCommand(Command);
+                // Upsample On
+                Command = TEXT("UPSAMPLE ON");
+                Response = SendCommand(Command);
+                if (ActiveSensorChannels.Num() > 0)
+                {
+                    // EMG sample rate
+                    Command = TEXT("SENSOR %d CHANNEL %d RATES"), ActiveSensorChannels[0] + 1, 1;
+                    Response = SendCommand(Command);
+                    float Value = FCString::Atof(*Response);
+                    if (Value != 0.0f)
+                    {
+                        EMGSampleInterval = 1.0f / Value;
+                    }
+                    
+                    // AUX (IMU) sample rate
+                    Command = TEXT("SENSOR %d CHANNEL %d RATES"), ActiveSensorChannels[0] + 1, 2;
+                    Response = SendCommand(Command);
+                    Value = FCString::Atof(*Response);
+                    if (Value != 0.0f)
+                    {
+                        AUXSampleInterval = 1.0f / Value;
+                    }
+                }
+                else
+                {
+                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("You may forgot to connect sensors!"));
+                }
+       
+
                 bInitialized = true;
             }
 
@@ -147,9 +177,9 @@ void UDelsysTrignoEMG::StartAcquisition()
     EMGDataSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("DelsysEMDDataSocket"), false));
     EMGDataSocket->SetNonBlocking(false); // Blocking for reques-reply mode
     EMGDataSocket->SetReuseAddr(true);
-    IMUDataSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("DelsysIMUDataSocket"), false));
-    IMUDataSocket->SetNonBlocking(false); // Blocking for reques-reply mode
-    IMUDataSocket->SetReuseAddr(true);
+    AUXDataSocket = MakeShareable(SocketSubsystem->CreateSocket(NAME_Stream, TEXT("DelsysIMUDataSocket"), false));
+    AUXDataSocket->SetNonBlocking(false); // Blocking for reques-reply mode
+    AUXDataSocket->SetReuseAddr(true);
 
     // Set IP and port
     FIPv4Address EMGIP;
@@ -162,7 +192,7 @@ void UDelsysTrignoEMG::StartAcquisition()
     FIPv4Address::Parse(TEXT("127.0.0.1"), IMUIP);
     TSharedRef<FInternetAddr> IMUAddr = SocketSubsystem->CreateInternetAddr();
     IMUAddr->SetIp(IMUIP.Value);
-    IMUAddr->SetPort(IMU_DATA_PORT);
+    IMUAddr->SetPort(AUX_DATA_PORT);
 
     // Connect socket
     if (EMGDataSocket->Connect(*EMGAddr))
@@ -174,7 +204,7 @@ void UDelsysTrignoEMG::StartAcquisition()
         UE_LOG(LogDelsysTrignoEMG, Error, TEXT("Failed to connect to EMG data port!"));
     }
 
-    if (IMUDataSocket->Connect(*IMUAddr))
+    if (AUXDataSocket->Connect(*IMUAddr))
     {
         UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Connected to IMU data port."));
     }
@@ -345,8 +375,8 @@ FString UDelsysTrignoEMG::SendCommand(FString Command)
 
             // Convert the command to a byte array 
             FString CommandString = Command;
-            CommandString.Append(LINE_TERMINATOR);
-            CommandString.Append(LINE_TERMINATOR);// require two line terminator for a valid command
+            CommandString.Append("\r\n");
+            CommandString.Append("\r\n");// require two line terminator for a valid command
 
             TCHAR* CommandChar = CommandString.GetCharArray().GetData(); //Get FString char array
 

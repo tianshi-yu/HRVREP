@@ -83,17 +83,17 @@ private:
     TArray<float> TempEMGDataList;
 
     // Temporary IMU data buffer
-    TArray<float> TempIMUDataList;
+    TArray<float> TempAUXDataList;
 
     // TCP Sockets
     TSharedPtr<FSocket> CommandSocket;
     TSharedPtr<FSocket> EMGDataSocket;
-    TSharedPtr<FSocket> IMUDataSocket;
+    TSharedPtr<FSocket> AUXDataSocket;
 
     // Ports
     const int32 COMMAND_PORT = 50040;
     const int32 EMG_DATA_PORT = 50043;
-    const int32 IMU_DATA_PORT = 50044;
+    const int32 AUX_DATA_PORT = 50044;
 
     // Commands
     const FString COMMAND_QUIT =  "QUIT";
@@ -113,9 +113,12 @@ private:
 
     // Saving File
     FString EMGFileName;
-    FString IMUFileName;
+    FString AUXFileName;
     FTextFileManager* EMGFileManager;
-    FTextFileManager* IMUFileManager;
+    FTextFileManager* AUXFileManager;
+    FDateTime RecordingStartTime;
+    float EMGSampleInterval;
+    float AUXSampleInterval;
 
     // Sensor data acquisition worker thread
     class FTrignoAcquisitionThread : public FRunnable
