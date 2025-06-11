@@ -83,31 +83,36 @@ bool UDelsysTrignoEMG::Connect()
                 }
 
                 // Config sensors
-                // Allow Upsampling
-                Command = TEXT("BACKWARDS COMPATIBILITY ON");
+                // Backwards compatibility
+                Command = TEXT("BACKWARDS COMPATIBILITY ON"); // To lock the streaming sampling rate
                 Response = SendCommand(Command);
-                // Upsample On
-                Command = TEXT("UPSAMPLE ON");
+                Command = TEXT("BACKWARDS COMPATIBILITY?"); // To lock the streaming sampling rate
                 Response = SendCommand(Command);
 
-                // Frame interval, p.s. the sampling rate query only get the native sampling frequency which not changing with upsampling
+                // Upsample On
+                Command = TEXT("UPSAMPLE OFF");
+                Response = SendCommand(Command);
+                Command = TEXT("UPSAMPLING?"); // To lock the streaming sampling rate
+                Response = SendCommand(Command);
+
+                // Frame interval, p.s.This get the native sampling frequency of the sensor, the SDK will resample it and stream
                 Command = TEXT("FRAME INTERVAL?");
                 Response = SendCommand(Command);
                 float Interval = FCString::Atof(*Response);
-                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Streaming sampling frame interval: %.2f"), Interval);
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Sampling frame interval: %.2f"), Interval);
 
                 // EMG samples in a frame and its sampling rate
                 Command = TEXT("MAX SAMPLES EMG?");
                 Response = SendCommand(Command);
-                int EMGSamples = FCString::Atof(*Response);
+                float EMGSamples = FCString::Atof(*Response);
                 EMGSampleInterval = Interval / EMGSamples;
                 UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG channel sampling rate: %.1f, sampling interval: %.5f."), 1.0f / EMGSampleInterval, EMGSampleInterval);
 
                 // EMG samples in a frame and its sampling rate
                 Command = TEXT("MAX SAMPLES AUX?");
                 Response = SendCommand(Command);
-                int AUXSamples = FCString::Atof(*Response);
-                EMGSampleInterval = Interval / AUXSamples;
+                float AUXSamples = FCString::Atof(*Response);
+                AUXSampleInterval = Interval / AUXSamples;
                 UE_LOG(LogDelsysTrignoEMG, Log, TEXT("AUX channel sampling rate: %.1f, sampling interval: %.5f."), 1.0f / AUXSampleInterval, AUXSampleInterval);
             }
             else
