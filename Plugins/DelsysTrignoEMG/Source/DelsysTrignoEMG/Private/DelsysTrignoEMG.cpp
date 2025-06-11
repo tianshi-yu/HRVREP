@@ -92,26 +92,28 @@ bool UDelsysTrignoEMG::Connect()
                 if (ActiveSensorChannels.Num() > 0)
                 {
                     // EMG sample rate
-                    Command = TEXT("SENSOR %d CHANNEL %d RATES"), ActiveSensorChannels[0] + 1, 1;
+                    Command = FString::Printf(TEXT("SENSOR %d CHANNEL %d RATE?"), ActiveSensorChannels[0] + 1, 1);
                     Response = SendCommand(Command);
                     float Value = FCString::Atof(*Response);
                     if (Value != 0.0f)
                     {
                         EMGSampleInterval = 1.0f / Value;
                     }
+                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG channel sampling rate: %.1f, sampling interval: %.5f."), Value, EMGSampleInterval);
                     
                     // AUX (IMU) sample rate
-                    Command = TEXT("SENSOR %d CHANNEL %d RATES"), ActiveSensorChannels[0] + 1, 2;
+                    Command = FString::Printf(TEXT("SENSOR %d CHANNEL %d RATE?"), ActiveSensorChannels[0] + 1, 2);
                     Response = SendCommand(Command);
                     Value = FCString::Atof(*Response);
                     if (Value != 0.0f)
                     {
                         AUXSampleInterval = 1.0f / Value;
                     }
+                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("AUX channel sampling rate: %.1f, sampling interval: %.5f."), Value, AUXSampleInterval);
                 }
                 else
                 {
-                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("You may forgot to connect sensors!"));
+                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("You may have forgot to connect sensors!"));
                 }
        
 
