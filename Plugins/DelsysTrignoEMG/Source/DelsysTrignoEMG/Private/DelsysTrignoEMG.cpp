@@ -88,12 +88,16 @@ bool UDelsysTrignoEMG::Connect()
                 Response = SendCommand(Command);
                 Command = TEXT("BACKWARDS COMPATIBILITY?"); // To lock the streaming sampling rate
                 Response = SendCommand(Command);
+                if (Response.Contains("Yes"))
+                    ServerBackwardsComatability = true;
 
                 // Upsample On
                 Command = TEXT("UPSAMPLE OFF");
                 Response = SendCommand(Command);
                 Command = TEXT("UPSAMPLING?"); // To lock the streaming sampling rate
                 Response = SendCommand(Command);
+                if (Response.Contains("Yes"))
+                    ServerUpSampling = true;
 
                 // Frame interval, p.s.This get the native sampling frequency of the sensor, the SDK will resample it and stream
                 Command = TEXT("FRAME INTERVAL?");
@@ -105,15 +109,34 @@ bool UDelsysTrignoEMG::Connect()
                 Command = TEXT("MAX SAMPLES EMG?");
                 Response = SendCommand(Command);
                 float EMGSamples = FCString::Atof(*Response);
-                EMGSampleInterval = Interval / EMGSamples;
-                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG channel sampling rate: %.1f, sampling interval: %.5f."), 1.0f / EMGSampleInterval, EMGSampleInterval);
+                EMGSensorNativeSampleInterval = Interval / EMGSamples;
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG native sampling sampling interval: %.5f."), EMGSensorNativeSampleInterval);
 
                 // EMG samples in a frame and its sampling rate
                 Command = TEXT("MAX SAMPLES AUX?");
                 Response = SendCommand(Command);
                 float AUXSamples = FCString::Atof(*Response);
-                AUXSampleInterval = Interval / AUXSamples;
-                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("AUX channel sampling rate: %.1f, sampling interval: %.5f."), 1.0f / AUXSampleInterval, AUXSampleInterval);
+                AUXSensorNativeSampleInterval = Interval / AUXSamples;
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("AUX native sampling sampling interval: %.5f."), AUXSensorNativeSampleInterval);
+                
+                // Decide sampling rate
+                if (ServerBackwardsComatability) // interval are locked according to server
+                {
+                    if (ServerUpSampling)
+                        EMGSampleInterval = EMG_SERVER_SAMPLE_INTERVAL_BACK_UP;
+                    else
+                        EMGSampleInterval = EMG_SERVER_SAMPLE_INTERVAL_BACK_NUP;
+
+                    AUXSampleInterval = AUX_SERVER_SAMPLE_INTERVAL_BACK;
+                }
+                else
+                {
+                    EMGSampleInterval = EMGSensorNativeSampleInterval;
+                    AUXSampleInterval = AUXSensorNativeSampleInterval;
+                }
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG actual sampling rate: %.1f, sampling interval: %.5f."), 1.0f / EMGSampleInterval, EMGSampleInterval);
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("AUX actual sampling rate: %.1f, sampling interval: %.5f."), 1.0f / AUXSampleInterval, AUXSampleInterval);
+                
             }
             else
             {
@@ -289,6 +312,7 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
 
     // Save EMG header
     FString HeaderString;
+    HeaderString.Append("System_Time,Time,");
     for (int i = 0; i < ActiveSensorChannels.Num(); i++)
     {
         HeaderString.Append(FString::Printf(TEXT("EMG_Sensor%d"), ActiveSensorChannels[i]+1)); 
@@ -327,6 +351,27 @@ void UDelsysTrignoEMG::StopRecording()
 
 void UDelsysTrignoEMG::AcquireData()
 {
+    EMGTimeCount += EMGSampleInterval;
+    AUXTimeCount += AUXSampleInterval;
+
+    FString EMGDataString;
+    FString AUXDataString;
+
+    // Time Stamp
+    FDateTime Now = FDateTime::Now();
+    int32 Hour = Now.GetHour();
+    int32 Minute = Now.GetMinute();
+    int32 Second = Now.GetSecond();
+    int32 Millisecond = Now.GetMillisecond();
+    FString TimeString = FString::Printf(TEXT("%02d:%02d:%02d.%03d,"),
+        Hour, Minute, Second, Millisecond);
+
+    EMGDataString.Append(TimeString);
+    EMGDataString.Append(FString::Printf(TEXT("%.5f,"), EMGTimeCount));
+    
+    AUXDataString.Append(TimeString);
+    AUXDataString.Append(FString::Printf(TEXT("%.5f,"), AUXTimeCount));
+
     // Acquire EMG data
     TempEMGDataList.Init(0.0f, 16);
     for (int i = 0; i < 16; i++)
@@ -342,17 +387,17 @@ void UDelsysTrignoEMG::AcquireData()
             
             if (bRecording && ActiveSensorChannels.Contains(i))
             {
-                FString DataString = FString::Printf(TEXT("%.7e"), TempEMGDataList[i]); // 7 digits float precision
+                EMGDataString.Append(FString::Printf(TEXT("%.7e"), TempEMGDataList[i])); // 7 digits float precision
 
                 if (i != ActiveSensorChannels.Last())
                 {
-                    DataString.Append(","); // Comma for csv format, but not for the last value
+                    EMGDataString.Append(","); // Comma for csv format, but not for the last value
                 }
                 else
                 {
-                    DataString.Append(LINE_TERMINATOR);
+                    EMGDataString.Append(LINE_TERMINATOR);
                 }
-                EMGFileManager->NewContent(DataString);
+                EMGFileManager->NewContent(EMGDataString);
 
             }
         }

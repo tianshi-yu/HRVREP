@@ -117,8 +117,19 @@ private:
     FTextFileManager* EMGFileManager;
     FTextFileManager* AUXFileManager;
     FDateTime RecordingStartTime;
-    float EMGSampleInterval;
-    float AUXSampleInterval;
+
+    // Sampling rate
+    float EMGTimeCount = 0.0f;
+    float AUXTimeCount = 0.0f;
+    bool ServerBackwardsComatability = false;
+    bool ServerUpSampling = false;
+    float EMGSensorNativeSampleInterval; // Note this is sensor sampling rate, not SDK server
+    float AUXSensorNativeSampleInterval; // Note this is sensor sampling rate, not SDK server
+    const float EMG_SERVER_SAMPLE_INTERVAL_BACK_UP = 0.0005;
+    const float EMG_SERVER_SAMPLE_INTERVAL_BACK_NUP = 0.0135 / 15;
+    const float AUX_SERVER_SAMPLE_INTERVAL_BACK = 0.0135 / 2;
+    float EMGSampleInterval; // The actual EMG sample interval
+    float AUXSampleInterval; // The actual AUX sample interval
 
     // Sensor data acquisition worker thread
     class FTrignoAcquisitionThread : public FRunnable
