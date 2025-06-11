@@ -78,7 +78,7 @@ bool UDelsysTrignoEMG::Connect()
                     if (SensorTypeList[i] == SensorTypes::SensorTrignoImu)
                     {
                         ActiveSensorChannels.Add(i);
-                        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensor %d is active."), i+1);
+                        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensor %d is active."), i + 1);
                     }
                 }
 
@@ -89,36 +89,32 @@ bool UDelsysTrignoEMG::Connect()
                 // Upsample On
                 Command = TEXT("UPSAMPLE ON");
                 Response = SendCommand(Command);
-                if (ActiveSensorChannels.Num() > 0)
-                {
-                    // EMG sample rate
-                    Command = FString::Printf(TEXT("SENSOR %d CHANNEL %d RATE?"), ActiveSensorChannels[0] + 1, 1);
-                    Response = SendCommand(Command);
-                    float Value = FCString::Atof(*Response);
-                    if (Value != 0.0f)
-                    {
-                        EMGSampleInterval = 1.0f / Value;
-                    }
-                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG channel sampling rate: %.1f, sampling interval: %.5f."), Value, EMGSampleInterval);
-                    
-                    // AUX (IMU) sample rate
-                    Command = FString::Printf(TEXT("SENSOR %d CHANNEL %d RATE?"), ActiveSensorChannels[0] + 1, 2);
-                    Response = SendCommand(Command);
-                    Value = FCString::Atof(*Response);
-                    if (Value != 0.0f)
-                    {
-                        AUXSampleInterval = 1.0f / Value;
-                    }
-                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("AUX channel sampling rate: %.1f, sampling interval: %.5f."), Value, AUXSampleInterval);
-                }
-                else
-                {
-                    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("You may have forgot to connect sensors!"));
-                }
-       
 
-                bInitialized = true;
+                // Frame interval, p.s. the sampling rate query only get the native sampling frequency which not changing with upsampling
+                Command = TEXT("FRAME INTERVAL?");
+                Response = SendCommand(Command);
+                float Interval = FCString::Atof(*Response);
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Streaming sampling frame interval: %.2f"), Interval);
+
+                // EMG samples in a frame and its sampling rate
+                Command = TEXT("MAX SAMPLES EMG?");
+                Response = SendCommand(Command);
+                int EMGSamples = FCString::Atof(*Response);
+                EMGSampleInterval = Interval / EMGSamples;
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG channel sampling rate: %.1f, sampling interval: %.5f."), 1.0f / EMGSampleInterval, EMGSampleInterval);
+
+                // EMG samples in a frame and its sampling rate
+                Command = TEXT("MAX SAMPLES AUX?");
+                Response = SendCommand(Command);
+                int AUXSamples = FCString::Atof(*Response);
+                EMGSampleInterval = Interval / AUXSamples;
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("AUX channel sampling rate: %.1f, sampling interval: %.5f."), 1.0f / AUXSampleInterval, AUXSampleInterval);
             }
+            else
+            {
+                UE_LOG(LogDelsysTrignoEMG, Log, TEXT("You may have forgot to connect sensors!"));
+            }
+            bInitialized = true;
 
             // Game thread
             Async(EAsyncExecution::TaskGraphMainThread, [this]()
