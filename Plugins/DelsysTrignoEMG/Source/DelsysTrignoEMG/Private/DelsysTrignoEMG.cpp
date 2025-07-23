@@ -308,7 +308,8 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
 {
     if (!bAcquiring) return;
     
-    EMGFileManager = new FTextFileManager(FilePath);
+    EMGFileManager = new FTextFileManager(FString::Printf(TEXT("%s_EMG"), *FilePath));
+    AUXFileManager = new FTextFileManager(FString::Printf(TEXT("%s_AUX"), *FilePath));
 
     // Save EMG header
     FString HeaderString;
@@ -372,9 +373,11 @@ void UDelsysTrignoEMG::AcquireData()
 
     EMGDataString.Append(TimeString);
     EMGDataString.Append(FString::Printf(TEXT("%.5f,"), EMGTimeCount));
-    
+
     AUXDataString.Append(TimeString);
     AUXDataString.Append(FString::Printf(TEXT("%.5f,"), AUXTimeCount));
+
+    
 
     // Acquire EMG data
     TempEMGDataList.Init(0.0f, 16);
@@ -389,7 +392,8 @@ void UDelsysTrignoEMG::AcquireData()
             FMemory::Memcpy(&EMGValue, TempBuffer, 4); // Convert the 4 bytes data to a float
             TempEMGDataList[i] = EMGValue;
             
-            if (bRecording && ActiveSensorChannels.Contains(i))
+            // Save EMG data
+            if (ActiveSensorChannels.Contains(i))
             {
                 EMGDataString.Append(FString::Printf(TEXT("%.7e"), TempEMGDataList[i])); // 7 digits float precision
 
@@ -401,12 +405,17 @@ void UDelsysTrignoEMG::AcquireData()
                 {
                     EMGDataString.Append(LINE_TERMINATOR);
                 }
-                EMGFileManager->NewContent(EMGDataString);
-
             }
         }
-
     }
+
+
+    if (bRecording)
+    {
+        EMGFileManager->NewContent(EMGDataString);
+        AUXFileManager->NewContent(AUXDataString);
+    }
+        
 
 
 }

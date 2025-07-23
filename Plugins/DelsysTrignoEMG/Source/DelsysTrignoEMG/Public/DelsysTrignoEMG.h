@@ -116,7 +116,6 @@ private:
     FString AUXFileName;
     FTextFileManager* EMGFileManager;
     FTextFileManager* AUXFileManager;
-    FDateTime RecordingStartTime;
 
     // Sampling rate
     float EMGTimeCount = 0.0f;
