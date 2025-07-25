@@ -63,6 +63,8 @@ public:
 
 
 private:
+
+
     // Send command to Trigno Control Utility server
     //TFuture<FString> SendCommand(FString Command);
     FString SendCommand(FString Command);
@@ -76,8 +78,20 @@ private:
     // List to keep track of various sensor types
     TArray<SensorTypes> SensorTypeList;
 
-    // Active sensor channels
-    TArray<int32> ActiveSensorChannels;
+    // Active sensor information
+    struct FActiveSensorInfo
+    {
+        TArray<int32> SensorChannels;
+
+        TArray<int32> EMGDataChannels;
+
+        TArray<int32> AUXDataChannels;
+    };
+    FActiveSensorInfo ActiveSensorList;
+    const int32 MAX_SENSOR = 16;
+    const int32 LEN_EMG_BUFFER = 16;
+    const int32 LEN_AUX_BUFFER = 144;
+    
 
     // Temporary EMG data buffer
     TArray<float> TempEMGDataList;
