@@ -2,8 +2,8 @@
 This virtual reality experimental platform is developed using UE for human-robot interaction research, such as studying human behaviour in or while interacting with autonomous vehicles. Core logic is implemented in C++, with example usages for a haul truck maneouvering environment provided through Blueprints.
 
 ## Features
-* An experimental flow control framework that handles the preparation, start, repetition, and end of experiments, as well as data logging during the experiments., see the [GameMode class](Source/HRVREP/Private/GameSystem/GenericExperimentGameMode.cpp) for details.
-* A multi-modal sensor data acquisition system with a defined sensor interface and a sensor registration mechanism, see [SensorSystem](Source/HRVREP/Public/SensorSystem) for details. The integrated sensors includes:
+* Experimental flow control framework that handles the preparation, start, repetition, and end of experiments, as well as data logging during the experiments., see the [GameMode class](Source/HRVREP/Private/GameSystem/GenericExperimentGameMode.cpp) for details.
+* Multi-modal sensor data acquisition system with a defined sensor interface and a sensor registration mechanism, see [SensorSystem](Source/HRVREP/Public/SensorSystem) for details. The integrated sensors includes:
   
   | Modality      | Sensor      |Note        |
   | ------------- |-------------|-------------|
