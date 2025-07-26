@@ -3,7 +3,7 @@
 * This plugin is created for data acquisition with Delsys's Trigno 16-sensor system.
 * The data acquisition relies on [Trigno Software Development Kit (SDK)](https://delsys.com/support/trigno-sdk/) and its TCP data streaming.
 
-## Blueprint
+## Blueprints
 The following key Blueprint nodes are provided. The order listed is also the recommended sequence for a single data recording routine:
 1. **Connect**: Connect to the Trigno sensor base station. The IP address and port have already been configured.
 2. **StartAcquisition**: Request the Trigno sensor base station to start data streaming.
