@@ -1,4 +1,4 @@
-# Human Robotics Virtual Reality Experimental Platform (In-progress)
+# Human Robotics Virtual Reality Experimental Platform
 This virtual reality experimental platform is developed using UE for human-robot interaction research, such as studying human behaviour in or while interacting with autonomous vehicles. Core logic is implemented in C++, with example usages for a haul truck maneouvering environment provided through Blueprints.
 
 ## Features
@@ -20,7 +20,9 @@ This virtual reality experimental platform is developed using UE for human-robot
 
 * VR environments:
   * Mining haul truck maneouvering tasks for driver attention prediction research
-
+    
+     <img src="./ReadmeResources/HaulTruckDriving.gif"  width="200" >  <img src="./ReadmeResources/Radar.gif"  width="200" >  <img src="./ReadmeResources/Motion.gif"  width="200" >
+     
 * Performance:
   * NVIDIA's Deep Learning Super Sampling (DLSS) is used for improving VR performance.
 ## Documentation
