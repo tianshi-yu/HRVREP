@@ -10,6 +10,7 @@ This virtual reality experimental platform is developed using UE for human-robot
   | Gaze          | [VIVE Full Face Tracker](https://www.vive.com/au/accessory/vive-full-face-tracker/)| Based on [VIVE OpenXR](https://developer.vive.com/resources/openxr/) plugin |
   | Electromyography (EMG)| [Delsys Trigno EMG](https://delsys.com/trigno/)| Up to 2kHz sampling rate, realized through Trigno Control Utility and dedicated UE plugin, see [DelsysTrignoEMG plugin folder](Plugins/DelsysTrignoEMG)|
   | Distance radar        | Virutal distance radar| Virtual sensor |
+  | Motion Capture        | XSens                 | IMU-based system, data saving in progress |
 
 * User information and experimental data saving system, see [UserSystem](Source/HRVREP/Public/UserSystem) and [DataloggerSystem](Source/HRVREP/Public/DataLoggerSystem) for details.
 * Compatible VR headset:
