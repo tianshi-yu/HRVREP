@@ -78,17 +78,19 @@ bool UDelsysTrignoEMG::Connect()
                     if (SensorTypeList[i] == SensorTypes::SensorTrignoImu)
                     {
                         ActiveSensorList.SensorChannels.Add(i);
-                        Command = FString::Printf(TEXT("SENSOR %d EMGCHANNELCOUNT ? "), i + 1); // How many EMG data channels
+                        Command = FString::Printf(TEXT("SENSOR %d EMGCHANNELCOUNT?"), i + 1); // How many EMG data channels
                         Response = SendCommand(Command); 
-                        float Number = FCString::Atof(*Response);
-                        ActiveSensorList.EMGDataChannels.Add(Number);
+                        int EMGChannelNumber = FCString::Atof(*Response);
+                        ActiveSensorList.EMGDataChannels.Add(EMGChannelNumber);
 
-                        Command = FString::Printf(TEXT("SENSOR %d AUXCHANNELCOUNT ? "), i + 1); // How many AUX data channels
+                        Command = FString::Printf(TEXT("SENSOR %d AUXCHANNELCOUNT?"), i + 1); // How many AUX data channels
                         Response = SendCommand(Command);
-                        Number = FCString::Atof(*Response);
-                        ActiveSensorList.AUXDataChannels.Add(Number);
+                        int AUXChannelNumber = FCString::Atof(*Response);
+                        ActiveSensorList.AUXDataChannels.Add(AUXChannelNumber);
 
                         UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensor %d is active."), i + 1);
+                        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensor %d EMG channel count: %d."), i + 1, EMGChannelNumber);
+                        UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys sensor %d AUX channel count: %d."), i + 1, AUXChannelNumber);
                     }
                 }
 
@@ -318,9 +320,20 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
 {
     if (!bAcquiring) return;
     
-    EMGFileManager = new FTextFileManager(FString::Printf(TEXT("%s_EMG"), *FilePath));
-    AUXFileManager = new FTextFileManager(FString::Printf(TEXT("%s_AUX"), *FilePath));
+    int32 ExtensionIndex;
+    FilePath.FindLastChar('.', ExtensionIndex);
+    FString FilePathNOExtension = FilePath.Left(ExtensionIndex);
+    FString FileExtension = FilePath.Mid(ExtensionIndex);
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Saved file extension name: %s"), *FileExtension);
 
+    FString EMGSavedFileName = FString::Printf(TEXT("%s_EMG%s"), *FilePathNOExtension, *FileExtension);
+    FString AUXSavedFileName = FString::Printf(TEXT("%s_AUX%s"), *FilePathNOExtension, *FileExtension);
+    EMGFileManager = new FTextFileManager(EMGSavedFileName);
+    AUXFileManager = new FTextFileManager(AUXSavedFileName);
+
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG saved file name: %s"), *EMGSavedFileName);
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("AUX saved file name: %s"), *AUXSavedFileName);
+    
     // Save EMG header
     FString EMGHeaderString;
     EMGHeaderString.Append("System_Time,Time,");
@@ -346,26 +359,32 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
     for (int i = 0; i < ActiveSensorList.SensorChannels.Num(); i++)
     {
         int SensorChannel = ActiveSensorList.SensorChannels[i] + 1;
-        if (ActiveSensorList.AUXDataChannels[i] >= 3)
+        if (ActiveSensorList.AUXDataChannels[i] == 3)
         {
             AUXHeaderString.Append(FString::Printf(TEXT("ACC_X_Sensor%d,"), SensorChannel));
             AUXHeaderString.Append(FString::Printf(TEXT("ACC_Y_Sensor%d,"), SensorChannel));
             AUXHeaderString.Append(FString::Printf(TEXT("ACC_Z_Sensor%d"), SensorChannel));
         }
-        
-        if (ActiveSensorList.AUXDataChannels[i] >= 6)
+
+        if (ActiveSensorList.AUXDataChannels[i] == 4)
         {
-            AUXHeaderString.Append(FString::Printf(TEXT(",GYRO_X_Sensor%d,"), SensorChannel));
+            AUXHeaderString.Append(FString::Printf(TEXT("QUAT_W_Sensor%d,"), SensorChannel));
+            AUXHeaderString.Append(FString::Printf(TEXT("QUAT_X_Sensor%d,"), SensorChannel));
+            AUXHeaderString.Append(FString::Printf(TEXT("QUAT_Y_Sensor%d,"), SensorChannel));
+            AUXHeaderString.Append(FString::Printf(TEXT("QUAT_Z_Sensor%d"), SensorChannel));
+        }
+
+        if (ActiveSensorList.AUXDataChannels[i] == 6)
+        {
+            AUXHeaderString.Append(FString::Printf(TEXT("ACC_X_Sensor%d,"), SensorChannel));
+            AUXHeaderString.Append(FString::Printf(TEXT("ACC_Y_Sensor%d,"), SensorChannel));
+            AUXHeaderString.Append(FString::Printf(TEXT("ACC_Z_Sensor%d,"), SensorChannel));
+            AUXHeaderString.Append(FString::Printf(TEXT("GYRO_X_Sensor%d,"), SensorChannel));
             AUXHeaderString.Append(FString::Printf(TEXT("GYRO_Y_Sensor%d,"), SensorChannel));
             AUXHeaderString.Append(FString::Printf(TEXT("GYRO_Z_Sensor%d"), SensorChannel));
         }
 
-        if (ActiveSensorList.AUXDataChannels[i] == 9)
-        {
-            AUXHeaderString.Append(FString::Printf(TEXT(",ORIEN_X_Sensor%d,"), SensorChannel));
-            AUXHeaderString.Append(FString::Printf(TEXT("ORIEN_Y_Sensor%d,"), SensorChannel));
-            AUXHeaderString.Append(FString::Printf(TEXT("ORIEN_Z_Sensor%d"), SensorChannel));
-        }
+        
 
 
         if (i != ActiveSensorList.SensorChannels.Num() - 1)
@@ -380,13 +399,12 @@ void UDelsysTrignoEMG::StartRecording(const FString& FilePath)
     AUXFileManager->NewContent(AUXHeaderString);
 
 
-
+  
     EMGTimeCount = 0.0f;
     AUXTimeCount = 0.0f;
     bRecording = true;
 
-    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno EMG data recording start."));
-    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("EMG data will be saved to: %s"), *FilePath);
+    UE_LOG(LogDelsysTrignoEMG, Log, TEXT("Delsys Trigno sensor data recording start."));
    
   
 }
@@ -403,8 +421,12 @@ void UDelsysTrignoEMG::StopRecording()
 
 void UDelsysTrignoEMG::AcquireData()
 {
-    EMGTimeCount += EMGSampleInterval;
-    AUXTimeCount += AUXSampleInterval;
+    if (bRecording)
+    {
+        EMGTimeCount += EMGSampleInterval;
+        AUXTimeCount += AUXSampleInterval;
+    }
+  
 
     FString EMGDataString;
     FString AUXDataString;
@@ -463,7 +485,7 @@ void UDelsysTrignoEMG::AcquireData()
     TempAUXDataList.Init(0.0f, LEN_AUX_BUFFER); // Max 16*9 AUX data for each sample
     for (int i = 0; i < MAX_SENSOR; i++)
     {
-        for (int j = 0; j < LEN_AUX_BUFFER / MAX_SENSOR; j++) // each sensor has 9 data channels in
+        for (int j = 0; j < LEN_AUX_BUFFER / MAX_SENSOR; j++) // LEN_AUX_BUFFER / MAX_SENSOR = 144/16 = 9, each sensor has 9 data channels in 
         {
             uint8 TempBuffer[4]; // buffer for response
             int32 BytesRead = 0;
@@ -472,21 +494,24 @@ void UDelsysTrignoEMG::AcquireData()
             {
                 float AUXValue;
                 FMemory::Memcpy(&AUXValue, TempBuffer, 4); // Convert the 4 bytes data to a float
-                int Index = i * 16 + j;
+                int Index = i * LEN_AUX_BUFFER / MAX_SENSOR + j;
                 TempAUXDataList[Index] = AUXValue;
 
-                // Save EMG data
-                if (ActiveSensorList.SensorChannels.Contains(i) && j < ActiveSensorList.AUXDataChannels[i])
+                // Save AUX data
+                if (ActiveSensorList.SensorChannels.Contains(i) && 
+                    j < ActiveSensorList.AUXDataChannels[ActiveSensorList.SensorChannels.Find(i)])
                 {
                     AUXDataString.Append(FString::Printf(TEXT("%.7e"), TempAUXDataList[Index])); // 7 digits float precision
 
-                    if (i != ActiveSensorList.SensorChannels.Last())
+                    if (i == ActiveSensorList.SensorChannels.Last() &&
+                        j == ActiveSensorList.AUXDataChannels[ActiveSensorList.SensorChannels.Find(i)] -1)
                     {
-                        AUXDataString.Append(","); // Comma for csv format, but not for the last value
+                        AUXDataString.Append(LINE_TERMINATOR); // Next line for the last value
+                       
                     }
                     else
                     {
-                        AUXDataString.Append(LINE_TERMINATOR);
+                        AUXDataString.Append(","); // Comma for csv format, but not for the last value
                     }
                 }
             }
